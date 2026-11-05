@@ -2311,7 +2311,7 @@ async function startHubFromUI() {
   try {
     const r = await api('/api/starthub', {});
     if (r.ok) { toast('Lin Hub 已启动', 'ok'); renderView(); }
-    else toast('启动失败，请双击桌面「Lin Hub」', 'err');
+    else toast(r.error || '启动失败，请双击桌面「Lin Hub」', 'err');
   } catch (e) { toast('启动失败：' + e.message, 'err'); }
 }
 

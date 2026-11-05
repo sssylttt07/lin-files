@@ -12,6 +12,26 @@ param(
 $ErrorActionPreference = 'Stop'
 $AppRoot = Split-Path -Parent $PSScriptRoot
 
+# UTF-8 文件名打包（v1.1.1 起）：Windows tar -a 按 GBK 写 zip 文件名且不带 UTF-8 标志，
+# macOS/Linux 解压全乱码。统一改用 python scripts\make_zip.py；找不到 Python 才回退 tar 并警告。
+function Make-Utf8Zip([string]$SrcDir, [string]$OutZip) {
+  $py = Get-Command python -ErrorAction SilentlyContinue
+  if ($py) {
+    & $py.Source (Join-Path $PSScriptRoot 'make_zip.py') $SrcDir $OutZip
+  } else {
+    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyLauncher) { & $pyLauncher.Source -3 (Join-Path $PSScriptRoot 'make_zip.py') $SrcDir $OutZip }
+    else { $py = $null }
+  }
+  if ($py -or $pyLauncher) {
+    if ($LASTEXITCODE -ne 0) { throw 'make_zip.py 打包失败' }
+    return
+  }
+  Write-Warning '未找到 Python，回退 tar 打包——中文文件名在 macOS/Linux 解压会乱码，建议装 Python 后重新打包。'
+  tar -a -c -f $OutZip -C (Split-Path -Parent $SrcDir) (Split-Path -Leaf $SrcDir)
+  if ($LASTEXITCODE -ne 0) { throw 'tar 打包失败' }
+}
+
 # 默认暂存目录：应用根的上级「推Github\Lin File完全体（推送前先出现在这里）」（相对解析，脚本内不写本机绝对路径）
 if (-not $StageDir) {
   $StageDir = Join-Path $AppRoot '..\推Github\Lin File完全体（推送前先出现在这里）'
@@ -64,8 +84,7 @@ if (Test-Path -LiteralPath $node) {
 
 # ---- 5) src.zip（不含 runtime，体积 <10MB）----
 $srcZip = Join-Path $StageDir "$RelName-src.zip"
-tar -a -c -f $srcZip -C $StageDir $RelName
-if ($LASTEXITCODE -ne 0) { throw 'src.zip 打包失败' }
+Make-Utf8Zip (Join-Path $StageDir $RelName) $srcZip
 $srcMB = [math]::Round((Get-Item -LiteralPath $srcZip).Length / 1MB, 2)
 Write-Host "src.zip：$srcMB MB"
 if ($srcMB -ge 10) { throw "src.zip 超过 10MB（$srcMB MB），检查是否误带了运行时或个人文件。" }
@@ -79,8 +98,7 @@ if (-not (Test-Path -LiteralPath $rtSrc)) { throw '未找到 runtime\node，无�
 New-Item -ItemType Directory -Path (Join-Path $portBuild "$RelName\runtime") -Force | Out-Null
 Copy-Item -LiteralPath $rtSrc -Destination (Join-Path $portBuild "$RelName\runtime\node") -Recurse -Force
 $portZip = Join-Path $StageDir "$RelName-portable.zip"
-tar -a -c -f $portZip -C $portBuild $RelName
-if ($LASTEXITCODE -ne 0) { throw 'portable.zip 打包失败' }
+Make-Utf8Zip (Join-Path $portBuild $RelName) $portZip
 Remove-Item -LiteralPath $portBuild -Recurse -Force
 $portMB = [math]::Round((Get-Item -LiteralPath $portZip).Length / 1MB, 2)
 Write-Host "portable.zip：$portMB MB"

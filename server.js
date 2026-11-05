@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 /* Lin Files — 本地文件管理器后端（纯 Node，零依赖）
  * 启动：runtime\node\node.exe server.js
  * 仅监听 127.0.0.1，所有路径操作限制在已添加的文件夹（库）内。
@@ -530,6 +530,7 @@ async function api(req, res, u) {
      默认用包内 modules/lin-hub/launcher.ps1（随包分发，零配置）；
      config.json 的 linHubScript 是可选高级项：指向本机另一份 Lin Hub 的启动脚本（覆盖包内版本） */
   if (method === 'POST' && p === '/api/starthub') {
+    if (process.platform !== 'win32') return sendJSON(res, 200, { ok: false, error: 'Lin Hub 仅支持 Windows（需要 PowerShell 5.1），当前系统是 ' + process.platform });
     let hubPs = String(cfg.linHubScript || '').trim();
     if (!hubPs) hubPs = path.join(ROOT, 'modules', 'lin-hub', 'launcher.ps1');
     if (!fs.existsSync(hubPs)) return sendJSON(res, 400, { ok: false, error: '未找到 Lin Hub 启动脚本（包内 modules/lin-hub/ 缺失；或 config.json 的 linHubScript 指向不存在的文件）' });
@@ -1249,6 +1250,17 @@ const server = http.createServer(async (req, res) => {
     const host = (req.headers.host || '').split(':')[0];
     if (!['127.0.0.1', 'localhost', '::1'].includes(host)) throw httpErr(403, '拒绝访问');
     const u = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
+    /* CSRF 防护（v1.1.1）：写操作校验 Origin。浏览器对本站同源 POST 会带 Origin=http://127.0.0.1:port（放行）；
+       恶意网页发起的跨站简单请求（如 text/plain）Origin 是对方域名——一律 403。
+       /api/rb/session 是油猴脚本从 rubii.ai 跨域回传的合法入口，由其自身处理器做白名单。 */
+    if (req.method !== 'GET' && req.method !== 'HEAD' && u.pathname !== '/api/rb/session') {
+      const origin = String(req.headers.origin || '');
+      if (origin) {
+        let localOk = false;
+        try { localOk = ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(new URL(origin).hostname); } catch {}
+        if (!localOk) throw httpErr(403, '跨站请求已拒绝（CSRF 防护）');
+      }
+    }
     if (u.pathname.startsWith('/api/')) return await api(req, res, u);
     if (u.pathname.startsWith('/v/')) return await serveVaultFile(req, res, u);
     if (u.pathname.startsWith('/thm/')) return await serveThm(req, res, u);
