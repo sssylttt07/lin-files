@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Lin Files</title>
+<style>html,body{background:#14161b;color:#d8dce5;margin:0}#app{min-height:100vh;background:#14161b}</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236535D4'/%3E%3Cstop offset='1' stop-color='%2337C89A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='138' fill='%2314121D'/%3E%3Cpath fill-rule='evenodd' fill='url(%23g)' d='M86 132A20 20 0 0 1 106 112L236 112A20 20 0 0 1 256 132L256 172L390 172A36 36 0 0 1 426 208L426 388A36 36 0 0 1 390 424L122 424A36 36 0 0 1 86 388ZM203 246L247 246L247 314L309 314L309 358L203 358Z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/vendor/github-dark.min.css">
+<link rel="stylesheet" href="/style.css?v=9">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div id="side-head">
+      <div class="brand"><svg class="logo-svg" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="lgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6535D4"/><stop offset="1" stop-color="#37C89A"/></linearGradient></defs><rect width="512" height="512" rx="138" fill="#14121D"/><path fill-rule="evenodd" fill="url(#lgrad)" d="M86 132A20 20 0 0 1 106 112L236 112A20 20 0 0 1 256 132L256 172L390 172A36 36 0 0 1 426 208L426 388A36 36 0 0 1 390 424L122 424A36 36 0 0 1 86 388ZM203 246L247 246L247 314L309 314L309 358L203 358Z"/></svg><b>Lin</b><span class="dim"> Files</span></div>
+      <div class="vault-row">
+        <select id="vaultSel" title="切换当前文件夹"></select>
+        <button id="btnAddVault" class="icon-btn" title="添加要管理的文件夹">＋</button>
+      </div>
+      <div class="side-actions">
+        <button id="btnQuick" class="side-btn"><svg class="icn" viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L9.5 22L19.5 9.5H13L13 2Z"/></svg> 快速打开 <kbd>Ctrl P</kbd></button>
+        <button id="btnSearch" class="side-btn"><svg class="icn" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg> 全文搜索 <kbd>Ctrl ⇧ F</kbd></button>
+        <button id="btnCards" class="side-btn"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg> 卡库（角色卡 / 世界书）</button>
+        <button id="btnThemes" class="side-btn"><svg class="icn" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 12h18M12 3v18"/></svg> 主题库（.thm / 封面）</button>
+        <button id="btnCovers" class="side-btn"><svg class="icn" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 15l4-4 3 3 5-5 4 4"/></svg> 封面</button>
+        <button id="btnOnline" class="side-btn"><svg class="icn" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg> 在线库（Lin Hub）</button>
+        <button id="btnHidden" class="side-btn ghost"><svg class="icn" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-3.1 3.9M6.6 6.6C4.6 8 3 12 3 12s3 7 9 7a9.7 9.7 0 0 0 4.4-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg> 隐藏文件 · 关</button>
+      </div>
+    </div>
+    <div id="favList" class="hidden"></div>
+    <div id="tree"></div>
+    <div id="side-foot">
+      <button id="btnNewMd" class="side-btn ghost">＋ 新建笔记</button>
+      <div id="themeRow" title="Lin 家族主题"></div>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="tabs"></div>
+    <div id="view"></div>
+    <div id="statusbar"><span id="stPath"></span><span id="stInfo"></span></div>
+  </main>
+</div>
+
+<div id="ctxmenu" class="hidden"></div>
+<div id="modal-root" class="hidden"></div>
+<div id="toasts"></div>
+
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/highlight.min.js"></script>
+<script src="/app.js?v=16"></script>
+</body>
+</html>

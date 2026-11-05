@@ -1,0 +1,16 @@
+{
+  "_说明": "Lin Hub 本地私有配置模板。复制为同目录 linhub-config.json 并填入真实值；linhub-config.json 不入库（.gitignore），所有键均可留空，留空时用运行时数据文件（data\\*.json）或界面里配置的值。",
+  "giteeToken": "",
+  "_giteeToken说明": "Gitee 私人令牌（勾选 projects 读写 + user_info）。优先级：账号管理里的 Gitee 账号 > 此键 > data\\gitee.json 旧值。",
+  "giteeRepo": "",
+  "_giteeRepo说明": "Gitee 默认仓库名（推送/新建仓库的预填值，例如 lin-projects）。",
+  "hubAccount": {
+    "sid": "",
+    "name": ""
+  },
+  "_hubAccount说明": "Tavo Hub 账号播种：data\\accounts.json 为空时用此 sid 作为账号（也可留空，运行后在「账号管理」里邮箱验证码登录或浏览器导入）。",
+  "braveUserData": "",
+  "_braveUserData说明": "Brave 用户数据目录（用于「从浏览器导入会话」扫 leveldb）。留空 = %LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\User Data。",
+  "chromeUserData": "",
+  "_chromeUserData说明": "Chrome 用户数据目录。留空 = %LOCALAPPDATA%\\Google\\Chrome\\User Data。"
+}

@@ -1,0 +1,18 @@
+{
+  "_说明": "复制本文件为 config.json 后按需修改；所有键都可以省略。JSON 不支持注释，带 * 的高级项含义见 README「配置说明」一节。",
+  "port": 8765,
+  "vaults": [
+    { "id": "1", "name": "示例库", "path": "示例库" }
+  ],
+  "nextVid": 2,
+  "showHidden": false,
+  "favorites": [],
+  "themeCoverView": "手机916",
+  "themeLib": "",
+  "thmDir": "",
+  "lwpDir": "",
+  "lwpFile": "",
+  "linHubScript": "",
+  "githubPat": "",
+  "githubRepo": ""
+}

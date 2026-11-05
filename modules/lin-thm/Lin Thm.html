@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lin Thm · Tavo 主题预览器</title>
+<style>
+:root{--bg:#141518;--panel:#1c1e23;--panel2:#22242b;--line:#2b2e37;--tx:#e8eaf0;--dim:#98a0ac;--acc:#7aa2ff;--ok:#5ad19a;--bad:#ff7a7a;--mono:Consolas,'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Segoe UI','Microsoft YaHei',system-ui,sans-serif;background:var(--bg);color:var(--tx);display:flex;overflow:hidden;font-size:13px}
+button{font:inherit;color:inherit}
+
+/* ---------- 侧栏 ---------- */
+#side{width:342px;flex:0 0 342px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+#side-head{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+#side-head h1{font-size:15px;font-weight:600;letter-spacing:.5px}
+#side-head .sub{color:var(--dim);font-size:11px;margin-top:2px}
+#side-body{flex:1;overflow-y:auto;padding:12px 14px 18px}
+#side-body::-webkit-scrollbar{width:8px}
+#side-body::-webkit-scrollbar-thumb{background:#33363f;border-radius:4px}
+
+#drop{border:1.5px dashed #3d414d;border-radius:10px;padding:18px 10px;text-align:center;color:var(--dim);cursor:pointer;transition:.15s;background:var(--panel2)}
+#drop:hover{border-color:var(--acc);color:var(--tx)}
+#drop.drag{border-color:var(--acc);background:#232a3d;color:var(--acc)}
+#drop .big{font-size:13px;color:var(--tx);margin-bottom:3px}
+#drop .fmt{font-size:11px;margin-top:5px;color:#6d7480;font-family:var(--mono)}
+#btn-row{display:flex;gap:8px;margin-top:10px}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+.btn:hover{border-color:var(--acc);color:var(--acc)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#10131a;font-weight:600}
+.btn.primary:hover{filter:brightness(1.1);color:#10131a}
+
+#lib-list{display:flex;flex-direction:column;gap:4px}
+.lib-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);cursor:pointer}
+.lib-item:hover{border-color:#3d465c}
+.lib-item.active{border-color:var(--acc);background:#232a3d}
+.lib-strip{display:flex;gap:2px;flex:0 0 auto}
+.lib-strip i{width:10px;height:22px;border-radius:3px;border:1px solid rgba(255,255,255,.14);display:block}
+.lib-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.lib-name{font-size:12.5px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-file{font-size:10px;color:var(--dim);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-del{flex:0 0 auto;width:18px;height:18px;border:none;border-radius:5px;background:transparent;color:#6d7480;cursor:pointer;font-size:14px;line-height:16px;padding:0}
+.lib-del:hover{background:#3a2226;color:#ff9b9b}
+.cap-check{accent-color:var(--acc);width:14px;height:14px;flex:0 0 auto;cursor:pointer;margin:0}
+.lib-empty{color:#6d7480;font-size:11.5px;padding:6px 2px}
+#lib-count{font-weight:400;color:#6d7480}
+.btn.mini{padding:1px 8px;font-size:10.5px}
+#btn-export{transition:opacity .15s}
+#btn-export:disabled{opacity:.45;cursor:not-allowed}
+.folder-node{margin-top:6px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);overflow:hidden}
+.folder-node .folder-node{margin-top:4px}
+.folder-head{display:flex;align-items:center;gap:8px;padding:7px 9px;cursor:pointer;font-size:12.5px;user-select:none}
+.folder-head:hover{background:#232838}
+.folder-head .fv{width:10px;flex:0 0 auto;transition:transform .15s;color:var(--dim);font-size:9px}
+.folder-node.open > .folder-head .fv{transform:rotate(90deg)}
+.folder-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx)}
+.folder-cnt{color:#6d7480;font-size:10.5px;font-family:var(--mono);flex:0 0 auto}
+.folder-body{display:none;border-top:1px solid var(--line);padding:4px 6px 6px}
+.folder-node.open > .folder-body{display:block}
+.ftheme{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11.5px}
+.ftheme:hover{background:#28304a}
+.ftheme.active{background:#232a3d}
+.ftheme.active .fn{color:var(--acc)}
+.ftheme .dot{width:8px;height:8px;border-radius:2px;flex:0 0 auto;background:linear-gradient(135deg,#6535D4,#37C89A)}
+.ftheme .fn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:10.5px;color:#b7bec9}
+.folder-msg{padding:6px 8px;color:#6d7480;font-size:11px}
+
+.sec{margin-top:16px}
+.sec>h2{font-size:12px;font-weight:600;color:var(--dim);letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec>h2::after{content:'';flex:1;height:1px;background:var(--line)}
+#err,#warn{display:none;border-radius:8px;font-size:12px;margin-top:12px;overflow:hidden}
+#err{background:#3a2226;border:1px solid #6b3a42;color:#ffb4b4}
+#warn{background:#3a3222;border:1px solid #6b5d3a;color:#ffd9a0}
+.box-head{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 11px;font-size:11.5px;font-weight:600;letter-spacing:.3px;background:rgba(0,0,0,.18)}
+.box-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.box-close{flex:0 0 auto;border:none;background:transparent;color:inherit;opacity:.7;cursor:pointer;font-size:15px;line-height:1;padding:3px 7px;border-radius:5px}
+.box-close:hover{opacity:1;background:rgba(255,255,255,.12)}
+.box-body{padding:7px 11px 9px;max-height:168px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;line-height:1.55;font-size:11.5px}
+.box-body::-webkit-scrollbar{width:8px}
+.box-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
+.box-body::-webkit-scrollbar-track{background:transparent}
+
+.kv{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:12px}
+.kv .k{color:var(--dim);flex:0 0 auto}
+.kv .v{text-align:right;word-break:break-all;font-family:var(--mono);font-size:11px;color:var(--tx)}
+.swrow{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px}
+.sw{width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.25);flex:0 0 auto;background:repeating-conic-gradient(#555 0 25%,#333 0 50%) 0 0/8px 8px}
+.swrow .lb{color:var(--dim);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.swrow .hx{font-family:var(--mono);font-size:10.5px;color:#b7bec9;text-align:right;flex:0 0 auto}
+
+.ctl{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12.5px;gap:8px}
+.ctl select{background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:12px}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:2px;gap:2px}
+.seg-btn{border:none;background:transparent;color:var(--dim);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px}
+.seg-btn:hover{color:var(--tx)}
+.seg-btn.active{background:var(--acc);color:#10131a;font-weight:600}
+.backdrops{display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 2px}
+.bd{width:38px;height:30px;border-radius:7px;border:1.5px solid var(--line);cursor:pointer;position:relative;overflow:hidden;padding:0;background-clip:padding-box}
+.bd:hover{border-color:#5a6480}
+.bd.active{border-color:var(--acc);box-shadow:0 0 0 2px rgba(122,162,255,.22)}
+.bd i{position:absolute;left:0;right:0;bottom:0;font-size:8.5px;font-style:normal;text-align:center;line-height:12px;color:#e6ebf5;background:rgba(0,0,0,.5)}
+.switch{position:relative;width:34px;height:19px;flex:0 0 auto;cursor:pointer}
+.switch input{opacity:0;width:0;height:0}
+.switch i{position:absolute;inset:0;background:#3a3e49;border-radius:10px;transition:.15s}
+.switch i::before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#aab1bd;border-radius:50%;transition:.15s}
+.switch input:checked+i{background:var(--acc)}
+.switch input:checked+i::before{transform:translateX(15px);background:#fff}
+
+#contrast{display:flex;flex-direction:column;gap:5px}
+.chip{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:4px 8px;border-radius:7px;background:var(--panel2);border:1px solid var(--line)}
+.chip .lb{flex:1;color:var(--dim)}
+.chip .r{font-family:var(--mono)}
+.chip .tag{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600}
+.chip.pass .tag{background:#1d3a2d;color:var(--ok)}
+.chip.fail .tag{background:#3d1d22;color:var(--bad)}
+.chip.na{opacity:.6}
+.chip.na .tag{background:#333;color:#999}
+
+#filelist{max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+#filelist::-webkit-scrollbar{width:8px}
+#filelist::-webkit-scrollbar-thumb{background:#33363f;border-radius:4px}
+.frow{display:flex;align-items:center;gap:8px;padding:5px 9px;border-bottom:1px solid #262932;font-size:11.5px}
+.frow:last-child{border-bottom:none}
+.frow .ic{width:16px;text-align:center;flex:0 0 auto}
+.frow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:10.5px}
+.frow .sz{color:var(--dim);flex:0 0 auto;font-size:10px}
+.frow img{width:20px;height:20px;object-fit:cover;border-radius:3px;flex:0 0 auto}
+
+#csswrap{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#15161a}
+#cssview{font-family:var(--mono);font-size:10.5px;color:#c3c9d4;padding:9px;white-space:pre-wrap;word-break:break-all}
+#empty-note{color:var(--dim);font-size:12px;line-height:1.7;padding:8px 2px}
+#empty-note b{color:var(--tx)}
+
+/* ---------- 预览区 ---------- */
+#stage{flex:1;min-width:0;display:flex;flex-direction:column;background:#0d0e11;position:relative}
+#stage-bar{height:34px;flex:0 0 34px;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line);font-size:11.5px;color:var(--dim)}
+#stage-bar .fname{font-family:var(--mono);color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#frame-outer{flex:1;display:flex;justify-content:center;overflow:hidden;padding:14px}
+#frame-wrap{width:100%;max-width:100%;display:flex;transition:max-width .2s}
+#frame{flex:1;border:0;border-radius:12px;background:#000;box-shadow:0 8px 40px rgba(0,0,0,.55)}
+#phone-frame{display:none;align-items:stretch;justify-content:center;position:relative;overflow:hidden;
+  border-radius:44px;border:10px solid #262a33;background:#000;
+  box-shadow:0 18px 60px rgba(0,0,0,.65), inset 0 0 0 2px rgba(255,255,255,.05)}
+#phone-frame #frame{border:0;border-radius:34px;background:#000;flex:1;width:100%}
+#frame-outer.mode-mobile{align-items:center}
+#frame-outer.mode-mobile #frame-wrap{display:none}
+#frame-outer.mode-mobile #phone-frame{display:flex}
+#frame-outer.mode-desktop #phone-frame{display:none}
+#drag-overlay{position:fixed;inset:0;background:rgba(20,26,48,.82);display:none;align-items:center;justify-content:center;z-index:99;font-size:20px;color:#cfe0ff}
+#drag-overlay .in{border:2px dashed rgba(160,190,255,.65);border-radius:16px;padding:26px 58px;background:rgba(10,14,28,.55);text-align:center}
+#drag-overlay .in small{display:block;font-size:12px;color:#8fa3c8;margin-top:8px}
+#drag-overlay.on{display:flex}
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <div id="side-head">
+    <h1 style="display:flex;align-items:center;gap:9px">
+      <svg width="26" height="18" viewBox="92 144 328 224" style="flex:0 0 auto;display:block" aria-hidden="true">
+        <defs>
+          <linearGradient id="lin-thm-g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#6535D4"/><stop offset="1" stop-color="#37C89A"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#lin-thm-g)" fill-rule="evenodd"
+          d="M100 256 C190 118 322 118 412 256 C322 394 190 394 100 256 Z M198 256 a58 58 0 1 0 116 0 a58 58 0 1 0 -116 0 Z"/>
+      </svg>
+      Lin Thm
+    </h1>
+    <div class="sub">Tavo .thm 主题包 · 纯本地解析 · 无网络依赖</div>
+  </div>
+  <div id="side-body">
+    <div id="drop">
+      <div class="big">拖入 .thm 文件，或点击选择</div>
+      <div>支持一次选多个 · 也支持 .zip 与裸 theme.json</div>
+      <div class="fmt">.thm / .zip / theme.json</div>
+    </div>
+    <div id="btn-row">
+      <button class="btn primary" id="btn-open">选择文件…</button>
+      <button class="btn" id="btn-open-dir" title="选择一个文件夹，递归导入其中（含子文件夹）的全部主题">📁 文件夹…</button>
+      <button class="btn" id="btn-rerender">重新渲染</button>
+    </div>
+    <input type="file" id="file-input" accept=".thm,.zip,.json" multiple style="display:none">
+    <input type="file" id="dir-input" webkitdirectory multiple style="display:none">
+    <div id="err" role="alert">
+      <div class="box-head"><span class="box-title" id="err-title">出错了</span><button class="box-close" id="err-close" title="关闭报错">✕</button></div>
+      <div class="box-body" id="err-body"></div>
+    </div>
+    <div id="warn" role="status">
+      <div class="box-head"><span class="box-title" id="warn-title">提示</span><button class="box-close" id="warn-close" title="关闭提示">✕</button></div>
+      <div class="box-body" id="warn-body"></div>
+    </div>
+
+    <div class="sec" id="sec-contrast" style="display:none">
+      <h2>对比度检查（WCAG）</h2>
+      <div id="contrast"></div>
+      <div id="contrast-note" style="color:#6d7480;font-size:10.5px;margin-top:6px;line-height:1.5">以渲染后的实际计算样式为准；半透明/渐变背景会回溯到最近的不透明层。</div>
+    </div>
+
+    <div class="sec" id="sec-library" style="display:none">
+      <h2 style="gap:6px">主题列表<span style="flex:1;height:1px;background:var(--line)"></span><span id="lib-count"></span><button class="btn mini" id="btn-select-all">全选</button><button class="btn mini" id="btn-clear-lib">清空</button></h2>
+      <div id="lib-list"></div>
+    </div>
+
+    <div class="sec" id="sec-export" style="display:none">
+      <h2>批量导出封面</h2>
+      <div class="ctl"><span>设备 / 比例</span>
+        <select id="opt-cap-device">
+          <option value="m916">手机 9:16</option>
+          <option value="mfull">手机 全面屏</option>
+          <option value="pc">电脑（当前宽度）</option>
+        </select>
+      </div>
+      <div style="color:#6d7480;font-size:11px;line-height:1.6;margin-top:4px">在主题列表勾选要导出的主题（复选框），每个主题按同名规格渲染成 PNG；多个文件自动打包 ZIP。命名：主题名（设备比例），如 诗意·月下（手机916）。</div>
+      <button class="btn primary" id="btn-export" disabled style="width:100%;margin-top:8px">导出选中（0）</button>
+    </div>
+    <style>#sec-library h2::after,#sec-folders h2::after{display:none}</style>
+
+    <div class="sec" id="sec-folders">
+      <h2 style="gap:6px">预设文件夹<span style="flex:1;height:1px;background:var(--line)"></span><button class="btn mini" id="btn-add-folder" title="选择一个放主题的文件夹，保存为预设">＋ 添加</button></h2>
+      <div id="folder-list"></div>
+      <div style="color:#6d7480;font-size:10.5px;line-height:1.5;margin-top:6px">预设保存在本浏览器（IndexedDB），关闭页面不丢失；浏览器重启后首次展开文件夹需重新授权访问。展开时总是重新扫描，反映文件夹最新内容。</div>
+    </div>
+
+    <div class="sec" id="sec-options">
+      <h2>预览选项</h2>
+      <div class="ctl"><span>视图模式</span>
+        <div class="seg" id="view-mode">
+          <button type="button" class="seg-btn active" data-mode="desktop">🖥 电脑</button>
+          <button type="button" class="seg-btn" data-mode="mobile">📱 手机</button>
+        </div>
+      </div>
+      <div class="ctl" id="ctl-phone-aspect" style="display:none"><span>手机比例</span>
+        <select id="opt-phone-aspect">
+          <option value="mfull">全面屏 390×844</option>
+          <option value="m916">9:16 390×693</option>
+        </select>
+      </div>
+      <div class="ctl" id="ctl-desktop-width"><span>电脑宽度</span>
+        <select id="opt-width">
+          <option value="0">跟随窗口</option>
+          <option value="420">窄 420px</option>
+          <option value="520">窄 520px</option>
+          <option value="680">中 680px</option>
+          <option value="900">宽 900px</option>
+        </select>
+      </div>
+      <label class="ctl"><span>思考块</span><span class="switch"><input type="checkbox" id="tg-thinking" checked><i></i></span></label>
+      <label class="ctl"><span>lindy 卡片 / 折叠栏</span><span class="switch"><input type="checkbox" id="tg-lindy" checked><i></i></span></label>
+      <label class="ctl"><span>状态栏</span><span class="switch"><input type="checkbox" id="tg-statusbar" checked><i></i></span></label>
+      <label class="ctl"><span>头像</span><span class="switch"><input type="checkbox" id="tg-avatar" checked><i></i></span></label>
+      <label class="ctl"><span>角色名</span><span class="switch"><input type="checkbox" id="tg-speaker" checked><i></i></span></label>
+      <div class="ctl" style="display:block;padding-bottom:2px"><span>预览底色</span></div>
+      <div class="backdrops" id="backdrops">
+        <button class="bd" data-bd="theme" title="跟随主题背景"><span style="position:absolute;inset:0;background:linear-gradient(135deg,#3a3d46,#22252b)"></span><i>自动</i></button>
+        <button class="bd" data-bd="black" title="纯黑" style="background:#0a0a0c"><i>黑</i></button>
+        <button class="bd" data-bd="darkgray" title="深灰" style="background:#2b2e35"><i>深灰</i></button>
+        <button class="bd" data-bd="gray" title="中灰 50%" style="background:#808080"><i>灰</i></button>
+        <button class="bd" data-bd="white" title="纯白" style="background:#fff"><i style="color:#333;background:rgba(255,255,255,.8)">白</i></button>
+        <button class="bd" data-bd="checker" title="棋盘格：检查半透明" style="background-color:#fff;background-image:repeating-conic-gradient(#fff 0 25%,#cfcfcf 0 50%);background-size:10px 10px;background-position:50% 50%"><i>棋盘</i></button>
+        <button class="bd" data-bd="grid" title="网格纹" style="background-color:#2b2e35;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.12) 0 1px,transparent 1px 8px),repeating-linear-gradient(90deg,rgba(255,255,255,.12) 0 1px,transparent 1px 8px)"><i>网格</i></button>
+      </div>
+      <div style="color:#6d7480;font-size:10.5px;line-height:1.5">换成棋盘/纯色底可看清气泡、输入区的半透明层次；「自动」还原主题自带背景。</div>
+    </div>
+
+    <div class="sec" id="sec-info" style="display:none">
+      <h2>主题信息</h2>
+      <div id="info"></div>
+    </div>
+
+    <div class="sec" id="sec-files" style="display:none">
+      <h2>包内文件</h2>
+      <div id="filelist"></div>
+    </div>
+
+    <div class="sec" id="sec-css" style="display:none">
+      <h2>custom_css <button class="btn" id="btn-copy-css" style="margin-left:auto;padding:2px 8px;font-size:11px">复制</button></h2>
+      <div id="csswrap"><pre id="cssview"></pre></div>
+    </div>
+
+    <div class="sec" id="sec-empty">
+      <h2>使用说明</h2>
+      <div id="empty-note">
+        <b>1.</b> 导入 .thm（本质是 ZIP，内含 theme.json），<b>可一次拖入/选择多个</b>，在主题列表中点选切换预览；列表仅存于当前页面，刷新后需重新导入。<br>
+        <b>2.</b> 预览区按 Tavo 的注入顺序渲染：先由 theme.json 字段合成<b>动态样式</b>（气泡颜色/圆角/字体、thinking、状态栏、输入区 console 变量），再注入 <b>custom_css</b>（<code>#tav-custom-style</code>，!important 必胜）。<br>
+        <b>3.</b> 包内图片/字体会生成 data URL，custom_css 里的相对 <code>url()</code> 与 <code>@import</code> 会被自动重写。<br>
+        <b>4.</b> 预览 DOM 为 Tavo 真实聊天结构（tav-* / tavo-* / lsb-* / lp-*），仅供主题调样式用，不代表 app 全部功能。<br>
+        <b>5.</b> 📸 截图当前预览（电脑/手机随当前视图），自动按 <b>主题名（设备比例）</b> 命名 PNG；批量导出在主题列表勾选后按所选比例逐个渲染，多文件自动打包 ZIP（2× 输出）。<br>
+        <b>6.</b> 📁 预设文件夹保存在本浏览器（IndexedDB），关闭页面不丢；文件夹树支持<b>子文件夹</b>逐层展开（懒扫描）；点文件载入预览，「载入全部」递归导入该层及全部子层；拖入/选择<b>整个文件夹</b>也会递归批量导入。
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main id="stage">
+  <div id="stage-bar">
+    <span id="st-fname" class="fname">未加载主题</span>
+    <span style="flex:1"></span>
+    <span id="st-meta"></span>
+    <button class="btn mini" id="btn-shot" title="截图当前预览视图，自动按 主题名（设备比例） 命名">📸 截图</button>
+  </div>
+  <div id="frame-outer" class="mode-desktop">
+    <div id="frame-wrap"><iframe id="frame" title="主题预览"></iframe></div>
+    <div id="phone-frame"></div>
+  </div>
+</main>
+
+<div id="drag-overlay"><div class="in">松开以导入主题文件<small>.thm / .zip / theme.json · 支持整个文件夹（含子文件夹）· 拖到窗口任意位置（包括预览区）</small></div></div>
+
+<script>
+'use strict';
+/* ================================================================
+ * THM 预览器
+ *  - ZIP 解析：EOCD + 中央目录 + ZIP64，条目用原生 DecompressionStream('deflate-raw') 解压
+ *  - theme.json (tavo_theme_v1) → 合成动态样式 → 注入 custom_css（#tav-custom-style）
+ *  - 预览 DOM 与 Tavo 聊天 webview 结构一致（_work/build/harness_template.html 同源）
+ * ================================================================ */
+
+const $ = (id) => document.getElementById(id);
+const frame = $('frame');
+
+/* ---------------- 工具 ---------------- */
+function argbCss(v){
+  if (v == null) return null;
+  if (typeof v === 'number') return argbNum(v);
+  if (typeof v === 'string'){
+    const s = v.trim();
+    if (s.charAt(0) === '#') return s;
+    const n = Number(s);
+    return Number.isFinite(n) ? argbNum(n) : s;
+  }
+  return null;
+}
+function argbNum(v){
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  const n = Math.round(v);
+  if (n < -2147483648 || n > 4294967295) return null;
+  const u = n >>> 0; // 负数 = 有符号 32 位 ARGB（林喵等主题用此写法）
+  const a = (u >>> 24) & 255, r = (u >>> 16) & 255, g = (u >>> 8) & 255, b = u & 255;
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + (a / 255).toFixed(3) + ')';
+}
+function argbHex(v){
+  if (typeof v !== 'number' || !Number.isFinite(v)) return v == null ? '—' : String(v);
+  const u = Math.round(v) >>> 0;
+  const p = (n) => n.toString(16).toUpperCase().padStart(2, '0');
+  return '#' + p((u >>> 24) & 255) + p((u >>> 16) & 255) + p((u >>> 8) & 255) + p(u & 255);
+}
+function fmtSize(n){
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const MIME = {png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',bmp:'image/bmp',
+  svg:'image/svg+xml',ico:'image/x-icon',avif:'image/avif',ttf:'font/ttf',otf:'font/otf',woff:'font/woff',woff2:'font/woff2',
+  mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',mp4:'video/mp4',webm:'video/webm'};
+function extOf(name){ const i = name.lastIndexOf('.'); return i < 0 ? '' : name.slice(i + 1).toLowerCase(); }
+function isAsset(name){ return MIME[extOf(name)] != null; }
+function toDataURL(u8, mime){
+  let s = '';
+  const CH = 0x8000;
+  for (let i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+  return 'data:' + mime + ';base64,' + btoa(s);
+}
+function normPath(p){
+  let s = String(p).replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, '');
+  try { s = decodeURIComponent(s); } catch (e) {}
+  return s.toLowerCase();
+}
+/* 资源解析：主题 CSS / theme.json 里的路径可能带应用安装前缀 `theme/`，
+   而包内条目是 `assets/...`；再兜底按文件名唯一匹配。 */
+function resolveAsset(map, path){
+  if (!path) return null;
+  const k = normPath(path);
+  if (map.has(k)) return map.get(k);
+  const stripped = k.replace(/^theme\//, '');
+  if (map.has(stripped)) return map.get(stripped);
+  const base = stripped.split('/').pop();
+  if (!base) return null;
+  let hit = null, n = 0;
+  for (const [key, val] of map){
+    if (key.split('/').pop() === base){ hit = val; n++; if (n > 1) break; }
+  }
+  return n === 1 ? hit : null;
+}
+
+/* ---------------- ZIP 解析 ---------------- */
+async function readZip(buf){
+  const u8 = new Uint8Array(buf);
+  const dv = new DataView(buf);
+  // 定位 EOCD（从后向前扫描）
+  let eocd = -1;
+  const minStart = Math.max(0, u8.length - 65558);
+  for (let i = u8.length - 22; i >= minStart; i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 ZIP/THM 文件（未找到 ZIP 结尾记录）。');
+  const diskNo = dv.getUint16(eocd + 4, true);
+  if (diskNo !== 0) throw new Error('不支持分卷 ZIP（disk=' + diskNo + '）。');
+  let cdCount = dv.getUint16(eocd + 10, true);
+  let cdOffset = dv.getUint32(eocd + 16, true);
+  // ZIP64
+  if (cdOffset === 0xFFFFFFFF || cdCount === 0xFFFF){
+    if (eocd >= 20 && dv.getUint32(eocd - 20, true) === 0x07064b50){
+      const z64 = Number(dv.getBigUint64(eocd - 20 + 8, true));
+      if (dv.getUint32(z64, true) !== 0x06064b50) throw new Error('ZIP64 记录损坏。');
+      cdCount = Number(dv.getBigUint64(z64 + 32, true));
+      cdOffset = Number(dv.getBigUint64(z64 + 48, true));
+    } else {
+      throw new Error('ZIP64 布局异常。');
+    }
+  }
+  const entries = [];
+  let p = cdOffset;
+  for (let n = 0; n < cdCount; n++){
+    if (p + 46 > u8.length || dv.getUint32(p, true) !== 0x02014b50) throw new Error('中央目录损坏（第 ' + (n + 1) + ' 项）。');
+    const flags = dv.getUint16(p + 8, true);
+    const method = dv.getUint16(p + 10, true);
+    let compSize = dv.getUint32(p + 20, true);
+    let uncompSize = dv.getUint32(p + 24, true);
+    const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), cmtLen = dv.getUint16(p + 32, true);
+    let localOff = dv.getUint32(p + 42, true);
+    const name = new TextDecoder('utf-8').decode(u8.subarray(p + 46, p + 46 + nameLen));
+    // ZIP64 extra field
+    let q = p + 46 + nameLen;
+    const qEnd = q + extraLen;
+    while (q + 4 <= qEnd){
+      const hid = dv.getUint16(q, true), hsz = dv.getUint16(q + 2, true);
+      if (hid === 0x0001){
+        let r = q + 4;
+        if (uncompSize === 0xFFFFFFFF){ uncompSize = Number(dv.getBigUint64(r, true)); r += 8; }
+        if (compSize === 0xFFFFFFFF){ compSize = Number(dv.getBigUint64(r, true)); r += 8; }
+        if (localOff === 0xFFFFFFFF){ localOff = Number(dv.getBigUint64(r, true)); r += 8; }
+      }
+      q += 4 + hsz;
+    }
+    entries.push({ name, flags, method, compSize, uncompSize, localOff });
+    p += 46 + nameLen + extraLen + cmtLen;
+  }
+  return { u8, dv, entries };
+}
+async function readEntry(z, e){
+  if (e.flags & 0x1) throw new Error('包内条目已加密，无法读取：' + e.name);
+  const lo = e.localOff;
+  if (lo + 30 > z.u8.length || z.dv.getUint32(lo, true) !== 0x04034b50) throw new Error('本地文件头损坏：' + e.name);
+  const nameLen = z.dv.getUint16(lo + 26, true), extraLen = z.dv.getUint16(lo + 28, true);
+  const start = lo + 30 + nameLen + extraLen;
+  const comp = z.u8.subarray(start, start + e.compSize);
+  if (e.method === 0) return comp.slice();
+  if (e.method === 8){
+    if (typeof DecompressionStream === 'undefined')
+      throw new Error('当前浏览器缺少 DecompressionStream（需 Edge/Chrome 103+），请换新版浏览器。');
+    const out = await new Response(new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+    return new Uint8Array(out);
+  }
+  throw new Error('不支持的压缩方法 ' + e.method + '（条目 ' + e.name + '）');
+}
+
+/* ---------------- 主题加载 ---------------- */
+let state = { theme: null, rawCss: '', fileName: '', entries: [], z: null };
+const library = [];   // { id, fileName, theme, rawCss, z, entries }
+let activeId = null;
+let uidSeq = 0;
+const capSel = new Set();   // 批量导出勾选
+let exporting = false;
+
+/* 报错/提示框：标题带计数，正文限高滚动，右上角 ✕ 可随时关闭 */
+const BOX_MAX_ROWS = 40;
+function showError(msg){
+  if (!msg){ hideError(); return; }
+  const lines = String(msg).split('\n').map((s) => s.trim()).filter(Boolean);
+  const listMode = lines.length > 1;
+  $('err-title').textContent = listMode ? ('导入问题 · ' + (lines.length - 1) + ' 项') : '出错了';
+  const body = listMode ? lines.slice(1, 1 + BOX_MAX_ROWS) : lines;
+  let text = body.join('\n');
+  if (listMode && lines.length - 1 > BOX_MAX_ROWS) text += '\n…还有 ' + (lines.length - 1 - BOX_MAX_ROWS) + ' 项未显示';
+  $('err-body').textContent = text;
+  $('err').style.display = 'block';
+  $('err-body').scrollTop = 0;
+}
+function hideError(){ $('err').style.display = 'none'; $('err-body').textContent = ''; }
+function showWarn(msg){
+  if (!msg){ showWarnHide(); return; }
+  const lines = String(msg).split('\n').map((s) => s.trim()).filter(Boolean);
+  $('warn-title').textContent = lines.length > 1 ? ('提示 · ' + lines.length + ' 条') : '提示';
+  $('warn-body').textContent = lines.slice(0, BOX_MAX_ROWS).join('\n');
+  $('warn').style.display = 'block';
+  $('warn-body').scrollTop = 0;
+}
+function showWarnHide(){ $('warn').style.display = 'none'; $('warn-body').textContent = ''; }
+
+function parseThemeJson(u8){
+  let txt = new TextDecoder('utf-8').decode(u8);
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+  const j = JSON.parse(txt);
+  if (j && j.spec && j.spec !== 'tavo_theme_v1')
+    showWarn('spec 为 "' + j.spec + '"（本工具按 tavo_theme_v1 解析，字段可能对不上）。');
+  return j;
+}
+async function parseThemeFile(file){
+  const buf = await file.arrayBuffer();
+  let theme = null, entries = [], z = null;
+  if (file.name.toLowerCase().endsWith('.json')){
+    theme = parseThemeJson(new Uint8Array(buf));
+  } else {
+    z = await readZip(buf);
+    entries = z.entries;
+    const tj = entries.find((e) => {
+      const n = e.name.toLowerCase();
+      return n === 'theme.json' || n.endsWith('/theme.json');
+    });
+    if (!tj){
+      throw new Error('包内没有 theme.json（包内：' + (entries.map((e) => e.name).join('、') || '空包') + '）');
+    }
+    theme = parseThemeJson(await readEntry(z, tj));
+  }
+  return {
+    id: ++uidSeq, fileName: file.name, theme,
+    rawCss: typeof theme.custom_css === 'string' ? theme.custom_css : '',
+    z, entries
+  };
+}
+const THEME_FILE_RE = /\.(thm|zip|json)$/i;
+function isThemeFileName(n){ return THEME_FILE_RE.test(n || ''); }
+
+async function importFiles(items){
+  hideError(); showWarn(null);
+  // 统一过滤：目录选择会带进 .png/.txt 等封面或说明文件，直接跳过而不是报错
+  const todo = [], skipped = [];
+  for (const it of items){
+    if (!it || !it.file) continue;
+    if (isThemeFileName(it.file.name)) todo.push(it);
+    else skipped.push(it.file.name);
+  }
+  const skippedNote = skipped.length ? '已忽略 ' + skipped.length + ' 个非主题文件（如 .png/.txt 封面或说明）' : '';
+  if (!todo.length){
+    if (skipped.length) showWarn('没有找到主题文件。\n' + skippedNote + '，只导入 .thm / .zip / theme.json');
+    return;
+  }
+  const fails = [], ok = [];
+  for (const { file, rel } of todo){
+    try {
+      const rec = await parseThemeFile(file);
+      rec.fileName = (rel ? rel + '/' : '') + file.name;
+      const i = library.findIndex((r) => r.fileName === rec.fileName); // 同名文件替换
+      if (i >= 0){ if (activeId === library[i].id) activeId = null; capSel.delete(library[i].id); library.splice(i, 1); }
+      library.push(rec);
+      ok.push(rec);
+    } catch (err){
+      console.error(err);
+      fails.push((rel ? rel + '/' : '') + file.name + '：' + (err && err.message ? err.message : String(err)));
+    }
+  }
+  if (fails.length) showError('部分文件导入失败：\n' + fails.join('\n'));
+  renderLibrary();
+  if (ok.length) activate(ok[ok.length - 1].id);
+  // 提示放在渲染之后：renderTheme 会清空提示框
+  if (skippedNote) showWarn(skippedNote);
+}
+function handleFiles(fileList){
+  return importFiles([...fileList].filter(Boolean).map((f) => ({ file: f, rel: '' })));
+}
+// 拖入内容递归展开（文件夹含子文件夹）；entry 必须在 drop 事件内同步抓取
+async function importDropEntries(entries){
+  const out = [];
+  async function walkEntry(en, prefix){
+    try {
+      if (en.isFile){
+        if (/\.(thm|zip|json)$/i.test(en.name)){
+          const file = await new Promise((res, rej) => en.file(res, rej));
+          out.push({ file, rel: prefix });
+        }
+      } else if (en.isDirectory){
+        const reader = en.createReader();
+        let batch;
+        do {
+          batch = await new Promise((res, rej) => reader.readEntries(res, () => res([])));
+          for (const c of batch) await walkEntry(c, prefix ? prefix + '/' + c.name : c.name);
+        } while (batch.length);
+      }
+    } catch (err){ console.warn('遍历拖入条目失败', en && en.name, err); }
+  }
+  for (const en of entries) await walkEntry(en, en.isDirectory ? en.name : '');
+  if (!out.length){ showError('拖入内容里没有找到主题文件（.thm / .zip / theme.json）。'); return; }
+  await importFiles(out);
+}
+function activate(id){
+  const r = library.find((x) => x.id === id);
+  if (!r) return;
+  activeId = id;
+  state.theme = r.theme;
+  state.rawCss = r.rawCss;
+  state.fileName = r.fileName;
+  state.entries = r.entries;
+  state.z = r.z;
+  // 复用已处理好的 CSS/资产（13MB 包 + 25MB 字体重读一次很贵）
+  recAssets(r).then((proc) => renderTheme(r.z, r.theme, r.entries, r.fileName, proc))
+    .catch((err) => {
+      showError('渲染失败：' + (err && err.message ? err.message : String(err)));
+      renderTheme(r.z, r.theme, r.entries, r.fileName).catch((e2) => showError('渲染失败：' + e2.message));
+    });
+}
+function removeTheme(id){
+  const i = library.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const [gone] = library.splice(i, 1);
+  capSel.delete(id);
+  if (gone && gone._proc) gone._proc.then(revokeProc).catch(() => {});
+  if (activeId === id){
+    activeId = null;
+    if (library.length) activate(library[Math.max(0, i - 1)].id);
+    else clearPreview();
+  }
+  renderLibrary();
+}
+function clearLibrary(){
+  library.forEach((r) => { if (r._proc) r._proc.then(revokeProc).catch(() => {}); });
+  library.length = 0;
+  activeId = null;
+  capSel.clear();
+  renderLibrary();
+  clearPreview();
+}
+function clearPreview(){
+  state.theme = null; state.rawCss = ''; state.fileName = ''; state.entries = []; state.z = null;
+  $('st-fname').textContent = '未加载主题';
+  $('st-meta').textContent = '';
+  $('sec-info').style.display = 'none';
+  $('sec-files').style.display = 'none';
+  $('sec-css').style.display = 'none';
+  $('sec-contrast').style.display = 'none';
+  $('sec-empty').style.display = 'block';
+  hideError(); showWarn(null);
+  window.__THM_PAYLOAD = { theme: null, customCss: '', bgImageUrl: '', ui: currentUi(), backdrop: currentBackdrop() };
+  frame.srcdoc = SHELL;
+}
+function updateExportBtn(){
+  const n = capSel.size;
+  const b = $('btn-export');
+  b.textContent = exporting ? b.textContent : (n ? '导出选中（' + n + '）' : '导出选中（0）');
+  b.disabled = !n || exporting;
+  $('sec-export').style.display = library.length ? 'block' : 'none';
+}
+function renderLibrary(){
+  $('sec-library').style.display = 'block';
+  $('lib-count').textContent = library.length ? '· ' + library.length : '';
+  $('lib-list').innerHTML = library.length ? library.map((r) => {
+    const t = r.theme;
+    const c1 = argbCss(t.background && t.background.color) || '#26282e';
+    const c2 = argbCss(t.character_bubble && t.character_bubble.color) || '#3a3d46';
+    const c3 = argbCss(t.user_bubble && t.user_bubble.color) || '#4a4e59';
+    const nm = t.name || '(未命名)';
+    return '<div class="lib-item' + (r.id === activeId ? ' active' : '') + '" data-id="' + r.id + '">'
+      + '<input type="checkbox" class="cap-check" data-check="' + r.id + '" title="勾选以批量导出"' + (capSel.has(r.id) ? ' checked' : '') + '>'
+      + '<span class="lib-strip"><i style="background:' + esc(c1) + '"></i><i style="background:' + esc(c2) + '"></i><i style="background:' + esc(c3) + '"></i></span>'
+      + '<span class="lib-main"><span class="lib-name">' + esc(nm) + '</span>'
+      + '<span class="lib-file">' + esc(r.fileName) + '</span></span>'
+      + '<button class="lib-del" data-del="' + r.id + '" title="从列表移除">×</button></div>';
+  }).join('') : '<div class="lib-empty">尚未导入 · 拖入一个或多个 .thm（.zip / theme.json 也可以）</div>';
+  $('sec-empty').style.display = library.length ? 'none' : 'block';
+  updateExportBtn();
+}
+
+async function processThemeCss(z, theme, rawCss, entries){
+  // 1. 收集资产：图片 → dataURL；字体 → blob URL（20-30MB 的 CJK 字体若转 base64 会膨胀且多主题累积爆内存）
+  const assetMap = new Map(); // normPath → url
+  const thumbs = new Map();   // entryName → dataURL（列表缩略图）
+  const fontBlobs = [];       // { url, u8, mime } —— 截图时临时换成 data URL 内联
+  for (const e of entries){
+    if (!isAsset(e.name)) continue;
+    try {
+      const data = await readEntry(z, e);
+      const mime = MIME[extOf(e.name)];
+      if (/^font\//.test(mime)){
+        const url = URL.createObjectURL(new Blob([data], { type: mime }));
+        assetMap.set(normPath(e.name), url);
+        fontBlobs.push({ url, u8: data, mime });
+      } else {
+        const url = toDataURL(data, mime);
+        assetMap.set(normPath(e.name), url);
+        if (/^image\//.test(mime)) thumbs.set(e.name, url);
+      }
+    } catch (err){ console.warn('资产读取失败', e.name, err); }
+  }
+
+  // 2. 处理 custom_css：@import 内联 + url() 重写
+  // 先解码包内 .css 文本条目，供 @import 单遍内联
+  const cssTextMap = new Map(); // normPath → css 文本
+  for (const ce of entries){
+    if (!/\.css$/i.test(ce.name) || /theme\.json$/i.test(ce.name)) continue;
+    try { cssTextMap.set(normPath(ce.name), new TextDecoder('utf-8').decode(await readEntry(z, ce))); }
+    catch (err){ console.warn('css 条目读取失败', ce.name, err); }
+  }
+  let css = rawCss;
+  css = css.replace(/@import\s+(?:url\(\s*(['"]?)([^'")]+?)\1\s*\)|(['"])([^'"]+?)\3)\s*;/gi, (m, q1, p1, q2, p2) => {
+    const path = p1 || p2 || '';
+    const key = normPath(path);
+    if (cssTextMap.has(key)) return cssTextMap.get(key);
+    if (resolveAsset(assetMap, path)) return ''; // @import 指向二进制资产属于误配，丢弃
+    return m;
+  });
+  css = css.replace(/url\(\s*(['"]?)([^'")]+?)\1\s*\)/gi, (m, q, path) => {
+    const hit = resolveAsset(assetMap, path);
+    return hit ? 'url("' + hit + '")' : m;
+  });
+
+  // 3. 背景图字段（同样要兼容 theme/ 前缀）
+  const bgImg = theme.background && typeof theme.background.image === 'string' ? theme.background.image : '';
+  let bgImgUrl = '';
+  if (bgImg){
+    bgImgUrl = resolveAsset(assetMap, bgImg) || '';
+    if (!bgImgUrl) showWarn('background.image = "' + bgImg + '" 在包内未找到对应文件。');
+  }
+  return { css, bgImgUrl, thumbs, fontBlobs };
+}
+function revokeProc(proc){
+  if (!proc || !proc.fontBlobs) return;
+  for (const f of proc.fontBlobs){ try { URL.revokeObjectURL(f.url); } catch (e) {} }
+}
+function recAssets(rec){
+  if (!rec._proc) rec._proc = processThemeCss(rec.z, rec.theme, rec.rawCss, rec.entries)
+    .catch((err) => { rec._proc = null; throw err; });
+  return rec._proc;
+}
+
+async function renderTheme(z, theme, entries, fileName, procIn){
+  showWarn(null);
+  const proc = procIn || await processThemeCss(z, theme, (typeof theme.custom_css === 'string' ? theme.custom_css : ''), entries);
+  state.renderCss = proc.css;
+  state.fontBlobs = proc.fontBlobs || [];
+
+  // 推给 iframe 并渲染
+  state.bgImageUrl = proc.bgImgUrl;
+  window.__THM_PAYLOAD = {
+    theme,
+    customCss: proc.css,
+    bgImageUrl: proc.bgImgUrl,
+    ui: currentUi(),
+    backdrop: currentBackdrop()
+  };
+  frame.srcdoc = SHELL;
+  $('st-fname').textContent = fileName;
+  const nm = theme.name || '(未命名)';
+  $('st-meta').textContent = nm + ' · ' + (theme.spec || '?') + ' · custom_css ' + fmtSize(state.rawCss.length) + ' · 条目 ' + entries.length;
+
+  renderInfo(theme);
+  renderFileList(entries, proc.thumbs);
+  const cv = $('cssview'); cv.textContent = proc.css;
+  $('sec-info').style.display = 'block';
+  $('sec-files').style.display = entries.length ? 'block' : 'none';
+  $('sec-css').style.display = proc.css ? 'block' : 'none';
+  $('sec-contrast').style.display = 'block';
+  $('sec-empty').style.display = 'none';
+  $('contrast').innerHTML = '<div class="chip na"><span class="lb">渲染中…</span></div>';
+  renderLibrary();
+}
+
+/* ---------------- 侧栏渲染 ---------------- */
+function swatchRow(label, val, extra){
+  const c = argbCss(val);
+  const hx = argbHex(val);
+  return '<div class="swrow"><span class="sw" style="' + (c ? 'background:' + esc(c) : '') + '"></span>'
+    + '<span class="lb">' + esc(label) + (extra ? ' <span style="color:#6d7480">' + esc(extra) + '</span>' : '') + '</span>'
+    + '<span class="hx">' + esc(hx) + '</span></div>';
+}
+function kvRow(k, v){ return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v">' + esc(v == null ? '—' : v) + '</span></div>'; }
+function fontDesc(f){
+  if (!f) return '—';
+  const parts = [];
+  if (f.fontSize != null) parts.push(f.fontSize + 'px');
+  if (f.fontWeight != null && f.fontWeight !== '') parts.push('w' + f.fontWeight);
+  if (f.fontStyle && f.fontStyle !== 'normal') parts.push(f.fontStyle);
+  if (f.fontFamily) parts.push(String(f.fontFamily).slice(0, 26) + (String(f.fontFamily).length > 26 ? '…' : ''));
+  return parts.join(' · ') || '—';
+}
+function renderInfo(t){
+  const el = $('info');
+  const cb = t.character_bubble || {}, ub = t.user_bubble || {},
+        cf = t.character_bubble_font || {}, uf = t.user_bubble_font || {},
+        th = t.thinking || {}, sb = t.status_bar || {}, co = t.console || {},
+        bg = t.background || {},
+        cav = t.character_avatar || {}, uav = t.user_avatar || {};
+  let h = '';
+  h += kvRow('name', t.name);
+  h += kvRow('spec', t.spec);
+  h += kvRow('display_mode', t.display_mode);
+  h += kvRow('bubble_display_type', t.bubble_display_type);
+  h += '<div style="height:6px"></div>';
+  h += swatchRow('背景 background.color', bg.color, bg.imageOpacity != null ? 'opacity ' + bg.imageOpacity : '');
+  h += swatchRow('角色气泡 color', cb.color, 'r' + (cb.radius != null ? cb.radius : '—') + ' b' + (cb.blur != null ? cb.blur : '—') + ' ' + (cb.alignment || ''));
+  h += swatchRow('用户气泡 color', ub.color, 'r' + (ub.radius != null ? ub.radius : '—') + ' b' + (ub.blur != null ? ub.blur : '—') + ' ' + (ub.alignment || ''));
+  h += swatchRow('角色字体 textStyle', cf.textStyle && cf.textStyle.color, fontDesc(cf.textStyle));
+  h += swatchRow('角色语气 toneTextStyle', cf.toneTextStyle && cf.toneTextStyle.color, fontDesc(cf.toneTextStyle));
+  h += swatchRow('角色引文 quoteTextStyle', cf.quoteTextStyle && cf.quoteTextStyle.color, fontDesc(cf.quoteTextStyle));
+  h += swatchRow('用户字体 textStyle', uf.textStyle && uf.textStyle.color, fontDesc(uf.textStyle));
+  h += swatchRow('用户语气 toneTextStyle', uf.toneTextStyle && uf.toneTextStyle.color, fontDesc(uf.toneTextStyle));
+  h += swatchRow('用户引文 quoteTextStyle', uf.quoteTextStyle && uf.quoteTextStyle.color, fontDesc(uf.quoteTextStyle));
+  h += swatchRow('思考块 thinking', th.color, th.backgroundColor != null ? 'bg ' + argbHex(th.backgroundColor) + ' · ' + (th.fontSize != null ? th.fontSize + 'px' : '') : '');
+  h += swatchRow('状态栏 status_bar', sb.color, sb.backgroundColor != null ? 'bg ' + argbHex(sb.backgroundColor) : '');
+  h += swatchRow('控制台 console', co.color, 'r' + (co.radius != null ? co.radius : '—') + ' b' + (co.blur != null ? co.blur : '—'));
+  h += swatchRow('控制台输入字色', co.fontColor);
+  h += swatchRow('控制台 sendColor', co.sendColor);
+  h += swatchRow('控制台 placeholder', co.placeholderColor);
+  h += '<div style="height:6px"></div>';
+  h += kvRow('角色头像', (cav.avatar === false ? '不显示' : '显示') + ' · 名字' + (cav.name === false ? '隐藏' : '显示') + ' · r' + (cav.radius != null ? cav.radius : '—'));
+  h += kvRow('用户头像', (uav.avatar === false ? '不显示' : '显示') + ' · r' + (uav.radius != null ? uav.radius : '—'));
+  h += kvRow('语气标记 tone', (cf.toneHighlight === false ? '关' : '开') + ' · 分隔符 ' + (cf.toneDelimiters || '—') + ' · 符号 ' + (cf.toneSymbol || '—'));
+  h += kvRow('引文标记 quote', (cf.quoteHighlight === false ? '关' : '开') + ' · 分隔符 ' + (cf.quoteDelimiters || '—') + ' · 符号 ' + (cf.quoteSymbol || '—'));
+  if (bg.image) h += kvRow('background.image', bg.image);
+  el.innerHTML = h;
+}
+function renderFileList(entries, thumbs){
+  const el = $('filelist');
+  el.innerHTML = entries.map((e) => {
+    const ex = extOf(e.name);
+    const icon = /^image\//.test(MIME[ex] || '') ? '🖼' : /^font\//.test(MIME[ex] || '') ? '🔤' : ex === 'json' ? '🧾' : ex === 'css' ? '🎨' : ex ? '📄' : '📁';
+    const th = thumbs.get(e.name);
+    return '<div class="frow"><span class="ic">' + icon + '</span>' + (th ? '<img src="' + th + '" alt="">' : '')
+      + '<span class="nm" title="' + esc(e.name) + '">' + esc(e.name) + '</span><span class="sz">' + fmtSize(e.uncompSize) + '</span></div>';
+  }).join('') || '<div class="frow"><span class="nm" style="color:#6d7480">（裸 theme.json，无包内文件）</span></div>';
+}
+
+/* ---------------- 对比度结果 ---------------- */
+window.addEventListener('message', (ev) => {
+  const d = ev.data;
+  if (!d || typeof d !== 'object') return;
+  if (d.type === 'thm-contrast'){
+    const box = $('contrast');
+    box.innerHTML = (d.rows || []).map((r) => {
+      if (r.ratio == null) return '<div class="chip na"><span class="lb">' + esc(r.label) + '</span><span class="tag">无法判定</span></div>';
+      const pass = r.ratio >= 4.5;
+      const aaa = r.ratio >= 7;
+      return '<div class="chip ' + (pass ? 'pass' : 'fail') + '"><span class="lb">' + esc(r.label) + '</span>'
+        + '<span class="r">' + r.ratio.toFixed(2) + ':1</span><span class="tag">' + (aaa ? 'AAA' : pass ? 'AA ✓' : '不足') + '</span></div>';
+    }).join('');
+  }
+});
+
+/* ---------------- 预览选项 ---------------- */
+function currentUi(){
+  return {
+    thinking: $('tg-thinking').checked,
+    lindy: $('tg-lindy').checked,
+    statusbar: $('tg-statusbar').checked,
+    avatar: $('tg-avatar').checked,
+    speaker: $('tg-speaker').checked
+  };
+}
+/* 预览底色（检查半透明用）：theme 跟随主题，其余为纯色/纹理 */
+let backdrop = 'theme';
+function currentBackdrop(){ return backdrop; }
+function applyBackdropUI(){
+  document.querySelectorAll('#backdrops .bd').forEach((b) => {
+    b.classList.toggle('active', b.dataset.bd === backdrop);
+  });
+}
+function setBackdrop(key){
+  backdrop = key || 'theme';
+  try { localStorage.setItem('thm-preview-backdrop', backdrop); } catch (e) {}
+  applyBackdropUI();
+  try { frame.contentWindow.postMessage({ type: 'thm-backdrop', key: backdrop }, '*'); } catch (e) {}
+}
+function applyWidth(){
+  const v = Number($('opt-width').value);
+  $('frame-wrap').style.maxWidth = v > 0 ? v + 'px' : '100%';
+}
+
+/* ---------------- 视图模式（电脑 / 手机）与尺寸 ---------------- */
+let viewMode = 'desktop';
+function phoneDims(){
+  return $('opt-phone-aspect').value === 'm916'
+    ? { W: 390, H: Math.round(390 * 16 / 9), label: '手机916' }
+    : { W: 390, H: 844, label: '手机全面屏' };
+}
+function pcDims(){
+  const sel = Number($('opt-width').value);
+  const W = sel > 0 ? sel : (Math.round(frame.clientWidth) || 1200);
+  const H = Math.round(frame.clientHeight) || 800;
+  return { W, H, label: '电脑' + W };
+}
+function layoutPhone(){
+  // 按所选屏幕比例，在可用空间内等比缩放
+  const d = phoneDims();
+  const outer = $('frame-outer');
+  const availW = outer.clientWidth - 48, availH = outer.clientHeight - 48;
+  let h = Math.min(d.H, availH);
+  let w = h * d.W / d.H;
+  if (w > availW){ w = Math.max(0, availW); h = w * d.H / d.W; }
+  const pf = $('phone-frame');
+  pf.style.width = Math.round(w) + 'px';
+  pf.style.height = Math.round(h) + 'px';
+}
+function applyViewMode(){
+  const outer = $('frame-outer');
+  outer.classList.toggle('mode-mobile', viewMode === 'mobile');
+  outer.classList.toggle('mode-desktop', viewMode === 'desktop');
+  document.querySelectorAll('#view-mode .seg-btn')
+    .forEach((b) => b.classList.toggle('active', b.dataset.mode === viewMode));
+  $('ctl-desktop-width').style.display = viewMode === 'desktop' ? '' : 'none';
+  $('ctl-phone-aspect').style.display = viewMode === 'mobile' ? '' : 'none';
+  if (viewMode === 'mobile') layoutPhone();
+  // iframe 移动挂载点会触发重载 → 重设 srcdoc（等同于一次重新渲染）
+  const host = viewMode === 'mobile' ? $('phone-frame') : $('frame-wrap');
+  if (frame.parentElement !== host) host.appendChild(frame);
+  window.__THM_PAYLOAD = {
+    theme: state.theme,
+    customCss: state.renderCss || state.rawCss || '',
+    bgImageUrl: state.bgImageUrl || '',
+    ui: currentUi(),
+    backdrop: currentBackdrop()
+  };
+  frame.srcdoc = SHELL;
+}
+function pushUi(){
+  const ui = currentUi();
+  try { localStorage.setItem('thm-preview-ui', JSON.stringify(ui)); } catch (e) {}
+  frame.contentWindow.postMessage({ type: 'thm-ui', ui }, '*');
+}
+(function initOptions(){
+  try {
+    const saved = JSON.parse(localStorage.getItem('thm-preview-ui') || '{}');
+    for (const k of ['thinking', 'lindy', 'statusbar', 'avatar', 'speaker']){
+      if (typeof saved[k] === 'boolean') $('tg-' + k).checked = saved[k];
+    }
+  } catch (e) {}
+  for (const k of ['thinking', 'lindy', 'statusbar', 'avatar', 'speaker']) $('tg-' + k).addEventListener('change', pushUi);
+  $('opt-width').addEventListener('change', applyWidth);
+  document.getElementById('view-mode').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn || btn.dataset.mode === viewMode) return;
+    viewMode = btn.dataset.mode;
+    try { localStorage.setItem('thm-preview-view', viewMode); } catch (err) {}
+    applyViewMode();
+  });
+  window.addEventListener('resize', () => { if (viewMode === 'mobile') layoutPhone(); });
+  try { viewMode = localStorage.getItem('thm-preview-view') === 'mobile' ? 'mobile' : 'desktop'; } catch (e) {}
+  try {
+    const a = localStorage.getItem('thm-preview-aspect');
+    if (a === 'm916' || a === 'mfull') $('opt-phone-aspect').value = a;
+  } catch (e) {}
+  $('opt-phone-aspect').addEventListener('change', () => {
+    try { localStorage.setItem('thm-preview-aspect', $('opt-phone-aspect').value); } catch (e) {}
+    if (viewMode === 'mobile') layoutPhone();
+  });
+  // 预览底色
+  try {
+    const bd = localStorage.getItem('thm-preview-backdrop');
+    if (bd) backdrop = bd;
+  } catch (e) {}
+  applyBackdropUI();
+  $('backdrops').addEventListener('click', (e) => {
+    const b = e.target.closest('.bd');
+    if (b) setBackdrop(b.dataset.bd);
+  });
+})();
+
+/* ---------------- 事件绑定 ---------------- */
+$('err-close').addEventListener('click', hideError);
+$('warn-close').addEventListener('click', showWarnHide);
+
+$('drop').addEventListener('click', () => $('file-input').click());
+$('btn-open').addEventListener('click', () => $('file-input').click());
+$('file-input').addEventListener('change', (e) => {
+  if (e.target.files && e.target.files.length) handleFiles(e.target.files);
+  e.target.value = '';
+});
+$('btn-open-dir').addEventListener('click', () => $('dir-input').click());
+$('dir-input').addEventListener('change', (e) => {
+  const fs = [...(e.target.files || [])];
+  if (fs.length){
+    const items = fs.map((f) => {
+      const segs = (f.webkitRelativePath || '').split('/');
+      segs.pop();
+      return { file: f, rel: segs.join('/') };
+    });
+    importFiles(items);
+  }
+  e.target.value = '';
+});
+$('lib-list').addEventListener('click', (e) => {
+  if (e.target.closest('.cap-check')) return; // 复选框走 change
+  const del = e.target.closest('[data-del]');
+  if (del){ removeTheme(Number(del.dataset.del)); return; }
+  const item = e.target.closest('.lib-item');
+  if (item) activate(Number(item.dataset.id));
+});
+$('lib-list').addEventListener('change', (e) => {
+  const cb = e.target.closest('.cap-check');
+  if (!cb) return;
+  const id = Number(cb.dataset.check);
+  if (cb.checked) capSel.add(id); else capSel.delete(id);
+  updateExportBtn();
+});
+$('btn-select-all').addEventListener('click', () => {
+  if (library.length && capSel.size === library.length) capSel.clear();
+  else library.forEach((r) => capSel.add(r.id));
+  renderLibrary();
+});
+$('btn-clear-lib').addEventListener('click', clearLibrary);
+$('btn-rerender').addEventListener('click', () => {
+  const r = library.find((x) => x.id === activeId);
+  if (r) renderTheme(r.z, r.theme, r.entries, r.fileName);
+});
+
+/* ================================================================
+ * 预设文件夹（本地持久化：IndexedDB 存 FileSystemDirectoryHandle）
+ *  - 展开时总是重新扫描（反映最新内容）；重启浏览器后首次展开重新授权
+ *  - 点文件行 = 解析载入并预览；「载入全部」= 整个文件夹进主题列表（可勾选批量导出）
+ * ================================================================ */
+const presets = []; // { id, name, handle, _open, _files, _err, _scanning }
+function idbOpen(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('lin-thm-presets', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('folders', { keyPath: 'id' }); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbAllFolders(){
+  try {
+    const db = await idbOpen();
+    return await new Promise((res, rej) => {
+      const rq = db.transaction('folders', 'readonly').objectStore('folders').getAll();
+      rq.onsuccess = () => res(rq.result || []);
+      rq.onerror = () => rej(rq.error);
+    });
+  } catch (e){ console.warn('IDB 读取失败', e); return []; }
+}
+async function idbSaveFolder(p){
+  try {
+    const db = await idbOpen();
+    await new Promise((res, rej) => {
+      const rq = db.transaction('folders', 'readwrite').objectStore('folders').put({ id: p.id, name: p.name, handle: p.handle });
+      rq.onsuccess = () => res(); rq.onerror = () => rej(rq.error);
+    });
+  } catch (e){ console.warn('IDB 写入失败', e); }
+}
+async function idbDelFolder(id){
+  try {
+    const db = await idbOpen();
+    await new Promise((res, rej) => {
+      const rq = db.transaction('folders', 'readwrite').objectStore('folders').delete(id);
+      rq.onsuccess = () => res(); rq.onerror = () => rej(rq.error);
+    });
+  } catch (e){ console.warn('IDB 删除失败', e); }
+}
+async function loadPresets(){
+  const rows = await idbAllFolders();
+  presets.length = 0;
+  for (const r of rows){
+    if (!r.handle) continue;
+    presets.push({ id: r.id, name: r.name, handle: r.handle, _path: '', _open: false, _scan: null, _err: null, _scanning: false });
+  }
+  renderFolders();
+}
+// 节点 = 任意文件夹（preset 本身是根节点）；_scan = { dirs:[节点], files:[文件句柄] }
+async function scanNode(node){
+  node._err = null; node._scan = null; node._scanning = true;
+  try {
+    if (node.handle.queryPermission){
+      let perm = await node.handle.queryPermission({ mode: 'read' });
+      if (perm !== 'granted' && node.handle.requestPermission) perm = await node.handle.requestPermission({ mode: 'read' });
+      if (perm !== 'granted') throw new Error('未获得该文件夹的访问授权（再点一次展开重试）');
+    }
+    const dirs = [], files = [];
+    for await (const entry of node.handle.values()){
+      if (entry.kind === 'directory'){
+        dirs.push({ handle: entry, name: entry.name, _path: node._path ? node._path + '/' + entry.name : entry.name, _open: false, _scan: null, _err: null, _scanning: false });
+      } else if (/\.(thm|zip|json)$/i.test(entry.name)){
+        files.push(entry);
+      }
+    }
+    const cmp = (a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN');
+    dirs.sort(cmp);
+    files.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+    node._scan = { dirs, files };
+  } catch (e){
+    node._err = (e && e.message) ? e.message : String(e);
+    node._scan = null;
+  }
+  node._scanning = false;
+}
+function findNode(root, path){
+  if (!path) return root;
+  let node = root;
+  for (const seg of path.split('/')){
+    if (!node._scan) return null;
+    node = node._scan.dirs.find((d) => d.name === seg);
+    if (!node) return null;
+  }
+  return node;
+}
+function nodeCntText(node){
+  if (node._scanning) return '扫描中…';
+  if (!node._scan) return '';
+  const parts = [];
+  if (node._scan.files.length) parts.push(node._scan.files.length + ' 主题');
+  if (node._scan.dirs.length) parts.push(node._scan.dirs.length + ' 子夹');
+  return parts.join(' · ') || '空';
+}
+function folderNodeHTML(node, preset, depth){
+  const open = node._open;
+  let body;
+  if (node._err) body = '<div class="folder-msg">' + esc(node._err) + '</div>';
+  else if (!node._scan) body = '<div class="folder-msg">点击展开扫描…</div>';
+  else if (!node._scan.files.length && !node._scan.dirs.length) body = '<div class="folder-msg">空文件夹（没有主题文件或子文件夹）</div>';
+  else {
+    const rows = [];
+    for (const d of node._scan.dirs) rows.push(folderNodeHTML(d, preset, depth + 1));
+    const activeRec = library.find((x) => x.id === activeId);
+    node._scan.files.forEach((f, i) => {
+      const act = activeRec && activeRec.presetId === preset.id && activeRec.srcName === f.name && (activeRec.relPath || '') === (node._path || '');
+      rows.push('<div class="ftheme' + (act ? ' active' : '') + '" data-fid="' + preset.id + '" data-fpath="' + esc(node._path) + '" data-fi="' + i + '" title="点击载入并预览">'
+        + '<span class="dot"></span><span class="fn">' + esc(f.name) + '</span></div>');
+    });
+    body = rows.join('');
+  }
+  return '<div class="folder-node' + (open ? ' open' : '') + '">'
+    + '<div class="folder-head" data-fold="' + preset.id + '" data-fpath="' + esc(node._path) + '" style="padding-left:' + (8 + depth * 14) + 'px">'
+    + '<span class="fv">▶</span><span class="folder-name" title="' + esc(node._path || node.name) + '">' + (depth ? '📂 ' : '📁 ') + esc(node.name) + '</span>'
+    + '<span class="folder-cnt">' + nodeCntText(node) + '</span>'
+    + '<button class="btn mini" data-loadall="' + preset.id + '" data-fpath="' + esc(node._path) + '" title="把该文件夹（含全部子文件夹）的主题批量载入主题列表">载入全部</button>'
+    + (depth === 0 ? '<button class="lib-del" data-delfolder="' + preset.id + '" title="移除该预设文件夹">×</button>' : '')
+    + '</div><div class="folder-body">' + body + '</div></div>';
+}
+function renderFolders(){
+  const box = $('folder-list');
+  box.innerHTML = presets.length ? presets.map((p) => folderNodeHTML(p, p, 0)).join('')
+    : '<div class="lib-empty">还没有预设 · 点右上角「＋ 添加」选择一个放主题的文件夹</div>';
+}
+async function loadFolderTheme(p, fh, relDir, quiet){
+  const file = await fh.getFile();
+  const rec = await parseThemeFile(file);
+  rec.relPath = relDir || '';
+  rec.fileName = p.name + '/' + (rec.relPath ? rec.relPath + '/' : '') + file.name;
+  rec.presetId = p.id;
+  rec.srcName = file.name;
+  const i = library.findIndex((r) => r.fileName === rec.fileName);
+  if (i >= 0){ if (activeId === library[i].id) activeId = null; capSel.delete(library[i].id); library.splice(i, 1); }
+  library.push(rec);
+  renderLibrary();
+  if (!quiet) activate(rec.id);
+}
+async function loadAllFromNode(p, node){
+  const list = [], fails = [];
+  async function collect(n){
+    if (!n._scan) await scanNode(n);
+    if (n._err){ fails.push((n._path || n.name) + '：' + n._err); return; }
+    for (const fh of n._scan.files) list.push({ fh, rel: n._path });
+    for (const d of n._scan.dirs) await collect(d);
+  }
+  await collect(node);
+  let last = null;
+  for (const { fh, rel } of list){
+    try { await loadFolderTheme(p, fh, rel, true); last = { rel, name: fh.name }; }
+    catch (e){ fails.push((rel ? rel + '/' : '') + fh.name + '：' + (e && e.message ? e.message : String(e))); }
+  }
+  renderFolders();
+  if (last){ const r = library.find((x) => x.presetId === p.id && x.srcName === last.name && (x.relPath || '') === last.rel); if (r) activate(r.id); }
+  if (fails.length) showError('部分主题载入失败：\n' + fails.join('\n'));
+  else if (list.length) hideError();
+}
+$('folder-list').addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-delfolder]');
+  if (del){
+    const i = presets.findIndex((x) => x.id === del.dataset.delfolder);
+    if (i >= 0){ const [p] = presets.splice(i, 1); await idbDelFolder(p.id); renderFolders(); }
+    return;
+  }
+  const la = e.target.closest('[data-loadall]');
+  if (la){
+    const p = presets.find((x) => x.id === la.dataset.loadall);
+    const node = p && findNode(p, la.dataset.fpath || '');
+    if (node){ node._open = true; await loadAllFromNode(p, node); }
+    return;
+  }
+  const ft = e.target.closest('.ftheme');
+  if (ft){
+    const p = presets.find((x) => x.id === ft.dataset.fid);
+    const node = p && findNode(p, ft.dataset.fpath || '');
+    const fh = node && node._scan ? node._scan.files[Number(ft.dataset.fi)] : null;
+    if (p && fh){
+      try { await loadFolderTheme(p, fh, node._path); renderFolders(); hideError(); }
+      catch (err){ showError('载入失败：' + (err && err.message ? err.message : String(err))); }
+    }
+    return;
+  }
+  const head = e.target.closest('[data-fold]');
+  if (head){
+    const p = presets.find((x) => x.id === head.dataset.fold);
+    const node = p && findNode(p, head.dataset.fpath || '');
+    if (!node) return;
+    node._open = !node._open;
+    renderFolders();
+    if (node._open){ await scanNode(node); renderFolders(); }
+  }
+});
+$('btn-add-folder').addEventListener('click', async () => {
+  if (!window.showDirectoryPicker){
+    showError('当前浏览器不支持文件夹选择（需要 Edge / Chrome 86+，或用系统浏览器打开本页）。');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'read' });
+    if (presets.some((x) => x.name === handle.name)){
+      showError('该文件夹已在预设列表中。');
+      return;
+    }
+    const p = { id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: handle.name, handle, _path: '', _open: true, _scan: null, _err: null, _scanning: false };
+    presets.push(p);
+    await idbSaveFolder(p);
+    renderFolders();
+    await scanNode(p);
+    renderFolders();
+    hideError();
+  } catch (e){
+    if (e && e.name === 'AbortError') return; // 用户取消
+    showError('添加文件夹失败：' + (e && e.message ? e.message : String(e)));
+  }
+});
+loadPresets();
+$('btn-copy-css').addEventListener('click', async () => {
+  const btn = $('btn-copy-css');
+  try { await navigator.clipboard.writeText(state.renderCss || ''); }
+  catch (e){
+    const ta = document.createElement('textarea');
+    ta.value = state.renderCss || ''; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1200);
+});
+// 拖放（预览区是 iframe，事件不会冒泡到父页——由外壳脚本转发回来，见 window.__thmDrag*）
+let dragDepth = 0;
+function setOverlay(on){ $('drag-overlay').classList.toggle('on', on); }
+window.addEventListener('dragenter', () => { dragDepth++; setOverlay(true); });
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) setOverlay(false); });
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragDepth = 0; setOverlay(false);
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  // DataTransferItem 必须在事件处理内同步取 entry
+  const entries = [];
+  if (dt.items && dt.items.length){
+    for (const it of dt.items){
+      if (it.kind !== 'file') continue;
+      const en = it.webkitGetAsEntry && it.webkitGetAsEntry();
+      if (en) entries.push(en);
+    }
+  }
+  if (entries.length) importDropEntries(entries);
+  else if (dt.files && dt.files.length) handleFiles(dt.files);
+});
+window.__thmDragIn = () => { dragDepth++; setOverlay(true); };
+window.__thmDragOut = () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) setOverlay(false); };
+window.__thmDropFile = (f) => { dragDepth = 0; setOverlay(false); if (f) handleFiles([f]); };
+
+/* ================================================================
+ * 截图与批量导出
+ *  - captureFrame：iframe DOM → XMLSerializer → SVG foreignObject → canvas
+ *    SVG 视口 = 目标逻辑尺寸（媒体查询按目标设备正确求值），ctx.scale(2,2) 矢量 2× 输出
+ *  - makeZip：手写 STORE 型 ZIP（PNG 已压缩，无需 deflate），UTF-8 文件名标志位
+ * ================================================================ */
+function safeName(s){ return String(s || '未命名').replace(/[\\/:*?"<>|]/g, '_'); }
+
+async function captureFrame(W, H, fontBlobs){
+  const doc = frame.contentDocument;
+  if (!doc || !doc.documentElement) throw new Error('预览尚未渲染完成');
+  // 字体（可能是 25MB 的 CJK 字体）先确保加载完成，否则截图里会退化成系统字体
+  if (doc.fonts && doc.fonts.ready){ try { await doc.fonts.ready; } catch (e) {} }
+  const clone = doc.documentElement.cloneNode(true);
+  // 预览里字体走 blob URL；SVG foreignObject 是隔离渲染上下文，blob 取不到 → 临时换成 data URL
+  const blobs = fontBlobs || state.fontBlobs || [];
+  const styleEl = clone.querySelector('#tav-custom-style');
+  if (styleEl && blobs.length){
+    let txt = styleEl.textContent || '';
+    let changed = false;
+    for (const f of blobs){
+      if (txt.indexOf(f.url) >= 0){ txt = txt.split(f.url).join(toDataURL(f.u8, f.mime)); changed = true; }
+    }
+    if (changed) styleEl.textContent = txt;
+  }
+  // 固定逻辑尺寸（替代 100vh 等），保证与预览视图一致
+  const ov = document.createElement('style');
+  ov.textContent = 'html,body{width:' + W + 'px!important;height:' + H + 'px!important;margin:0!important;overflow:hidden!important}'
+    + '.tav-chat-container{height:' + H + 'px!important}';
+  clone.querySelector('head').appendChild(ov);
+  const inner = new XMLSerializer().serializeToString(clone);
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '">'
+    + '<foreignObject x="0" y="0" width="100%" height="100%">' + inner + '</foreignObject></svg>';
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('快照渲染失败（foreignObject）')); });
+  if (img.decode) { try { await img.decode(); } catch (e) {} }
+  const canvas = document.createElement('canvas');
+  canvas.width = W * 2; canvas.height = H * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2); // SVG 是矢量的，2× 光栅化保持文字锐利
+  ctx.drawImage(img, 0, 0);
+  return canvas;
+}
+function canvasToPngU8(canvas){
+  return new Promise((res, rej) => canvas.toBlob(async (b) => {
+    if (!b) { rej(new Error('PNG 编码失败')); return; }
+    res(new Uint8Array(await b.arrayBuffer()));
+  }, 'image/png'));
+}
+function downloadBlob(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+}
+function crc32(u8){
+  if (!crc32.T){
+    const T = new Uint32Array(256);
+    for (let n = 0; n < 256; n++){
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      T[n] = c >>> 0;
+    }
+    crc32.T = T;
+  }
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) c = crc32.T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZip(files){
+  const te = new TextEncoder();
+  const cat = (arrs) => {
+    const len = arrs.reduce((a, b) => a + b.length, 0);
+    const out = new Uint8Array(len);
+    let o = 0;
+    for (const u of arrs){ out.set(u, o); o += u.length; }
+    return out;
+  };
+  const w16 = (v) => new Uint8Array([v & 255, (v >>> 8) & 255]);
+  const w32 = (v) => new Uint8Array([v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]);
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const body = [], central = [];
+  let offset = 0;
+  for (const f of files){
+    const name = te.encode(f.name);
+    const crc = crc32(f.u8);
+    const lh = cat([w32(0x04034b50), w16(20), w16(0x0800), w16(0), w16(dosTime), w16(dosDate),
+      w32(crc), w32(f.u8.length), w32(f.u8.length), w16(name.length), w16(0), name]);
+    body.push(lh, f.u8);
+    central.push(cat([w32(0x02014b50), w16(20), w16(20), w16(0x0800), w16(0), w16(dosTime), w16(dosDate),
+      w32(crc), w32(f.u8.length), w32(f.u8.length), w16(name.length), w16(0), w16(0), w16(0), w16(0), w32(0), w32(offset), name]));
+    offset += lh.length + f.u8.length;
+  }
+  const cd = cat(central);
+  const eocd = cat([w32(0x06054b50), w16(0), w16(0), w16(files.length), w16(files.length), w32(cd.length), w32(offset), w16(0)]);
+  return new Blob([cat([...body, cd, eocd])], { type: 'application/zip' });
+}
+function devLabel(dev){
+  return dev === 'm916' ? '手机916' : dev === 'mfull' ? '手机全面屏' : null;
+}
+async function renderShot(rec, proc, dev){
+  await new Promise((resolve, reject) => {
+    const to = setTimeout(() => { frame.onload = null; reject(new Error('渲染超时')); }, 15000);
+    window.__THM_PAYLOAD = { theme: rec.theme, customCss: proc.css, bgImageUrl: proc.bgImgUrl, ui: currentUi(), backdrop: currentBackdrop() };
+    frame.onload = async () => {
+      clearTimeout(to);
+      frame.onload = null;
+      try {
+        const w = frame.contentWindow;
+        if (w && w.document && w.document.fonts && w.document.fonts.ready){ try { await w.document.fonts.ready; } catch (e) {} }
+        await new Promise((r) => { let n = 0; const step = () => { if (++n >= 2) r(); else w.requestAnimationFrame(step); }; w.requestAnimationFrame(step); });
+        resolve();
+      } catch (err){ reject(err); }
+    };
+    frame.srcdoc = SHELL;
+  });
+  const d = dev === 'm916' ? { W: 390, H: Math.round(390 * 16 / 9), label: '手机916' }
+    : dev === 'mfull' ? { W: 390, H: 844, label: '手机全面屏' }
+    : pcDims();
+  const canvas = await captureFrame(d.W, d.H, proc.fontBlobs);
+  return { u8: await canvasToPngU8(canvas), label: d.label };
+}
+// 单张：截图当前预览视图（电脑/手机随当前模式）
+$('btn-shot').addEventListener('click', async () => {
+  if (!state.theme){ showError('先导入并预览一个主题再截图。'); return; }
+  if (exporting) return;
+  const d = viewMode === 'mobile' ? phoneDims() : pcDims();
+  const btn = $('btn-shot');
+  const t = btn.textContent;
+  btn.disabled = true; btn.textContent = '截图中…';
+  try {
+    const canvas = await captureFrame(d.W, d.H);
+    if (window.__THM_EMBED) {
+      /* 嵌入在 Lin Files 的「主题库」里：把 PNG 交给父窗口落盘，不触发下载 */
+      parent.postMessage({ type: 'thm-shot', dataUrl: canvas.toDataURL('image/png'), device: d.label, name: (state.theme && state.theme.name) || '' }, '*');
+    } else {
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+      downloadBlob(blob, safeName(state.theme.name) + '（' + d.label + '）.png');
+    }
+    hideError();
+    btn.textContent = '已保存 ✓';
+    setTimeout(() => { btn.textContent = t; }, 1500);
+  } catch (err){
+    showError('截图失败：' + (err && err.message ? err.message : String(err)));
+    btn.textContent = t;
+  } finally { btn.disabled = false; }
+});
+// 批量：勾选主题 → 按所选设备逐个渲染 → 多文件打包 ZIP
+$('btn-export').addEventListener('click', async () => {
+  if (exporting) return;
+  const recs = library.filter((r) => capSel.has(r.id));
+  if (!recs.length) return;
+  exporting = true;
+  updateExportBtn();
+  const btn = $('btn-export');
+  const dev = $('opt-cap-device').value;
+  const files = [], fails = [];
+  try {
+    for (let i = 0; i < recs.length; i++){
+      const rec = recs[i];
+      btn.textContent = '导出中 ' + (i + 1) + '/' + recs.length + '…';
+      btn.disabled = true;
+      try {
+        const proc = await recAssets(rec);
+        const shot = await renderShot(rec, proc, dev);
+        files.push({ name: safeName(rec.theme.name) + '（' + shot.label + '）.png', u8: shot.u8 });
+      } catch (err){
+        console.error(err);
+        fails.push((rec.theme.name || rec.fileName) + '：' + (err && err.message ? err.message : String(err)));
+      }
+    }
+  } finally {
+    if (files.length === 1) downloadBlob(new Blob([files[0].u8], { type: 'image/png' }), files[0].name);
+    else if (files.length > 1){
+      const lb = devLabel(dev) || ('电脑' + pcDims().W);
+      downloadBlob(makeZip(files), 'LinThm-封面-' + lb + '×' + files.length + '.zip');
+    }
+    if (fails.length) showError('部分导出失败：\n' + fails.join('\n'));
+    else if (files.length) hideError();
+    exporting = false;
+    applyViewMode(); // 恢复当前预览
+    updateExportBtn();
+  }
+});
+
+/* ================================================================
+ * iframe 预览外壳（静态模板，srcdoc 注入；读取 parent.__THM_PAYLOAD）
+ * 注意：本模板字符串内不得出现反引号与 ${，结束标签用 <\/script> 转义
+ * ================================================================ */
+const SHELL = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+.tav-chat-container{display:flex;flex-direction:column;height:100vh;width:100%;max-width:100%;overflow-x:hidden;position:relative;isolation:isolate;overflow:hidden}
+.tav-items{position:relative;z-index:2;flex:1;overflow-y:auto;padding:26px 18px 10px;display:flex;flex-direction:column;gap:12px}
+.tav-message{margin:4px 0}
+.tav-user-message{display:flex;justify-content:flex-end}
+.tav-character-message{display:flex;flex-direction:column}
+.tav-bubble-wrapper{max-width:86%}
+.tav-user-bubble-wrapper{margin-left:auto}
+.tavo-speaker-name{margin:0 4px 5px}
+.tav-bubble{padding:10px 14px}
+.tav-items::-webkit-scrollbar{width:6px}
+.tav-items::-webkit-scrollbar-thumb{background:rgba(128,128,128,.35);border-radius:3px}
+.tav-items::-webkit-scrollbar-track{background:transparent}
+.tav-bubble-content-body{font-size:16px;line-height:1.75}
+.tav-message-reasoning{margin:0 0 8px;padding:8px 10px;border-radius:8px}
+.tav-message-reasoning summary{cursor:pointer;list-style:none}
+.tav-message-reasoning summary::-webkit-details-marker{display:none}
+.tav-message-reasoning-body{margin-top:6px;line-height:1.6}
+.tav-action-bar{display:flex;gap:6px;margin:6px 2px 0;align-items:center;max-width:100%}
+.tav-action-bar-button-group{display:flex;align-items:center;gap:6px}
+.tav-action-bar-button{width:26px;height:22px;background:none;border:none;cursor:pointer;font-size:13px;line-height:22px;text-align:center;padding:0}
+.tav-composer{position:relative;z-index:3;padding-bottom:14px}
+.tav-chat-composer-shell{display:flex;align-items:center;gap:8px;padding:8px 10px;
+  --tav-chat-composer-shell-background:rgba(202,204,209,.4);
+  --tav-chat-composer-backdrop-blur:16px;
+  --tav-chat-composer-radius:7px;
+  --tav-chat-composer-text-color:#fff;
+  --tav-chat-composer-placeholder-color:rgba(255,255,255,.5);
+  --tav-chat-composer-action-color:#fff;
+  background:var(--tav-chat-composer-shell-background);
+  -webkit-backdrop-filter:blur(var(--tav-chat-composer-backdrop-blur));
+  backdrop-filter:blur(var(--tav-chat-composer-backdrop-blur));
+  border-radius:var(--tav-chat-composer-radius);
+  color:var(--tav-chat-composer-text-color);
+}
+.tav-chat-composer-input{flex:1;border:none;outline:none;resize:none;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:1.5}
+.tav-chat-composer-input::placeholder{color:var(--tav-chat-composer-placeholder-color)}
+.tav-composer-leading-button,.tav-composer-trailing-button{cursor:pointer;background:none;border:none;color:var(--tav-chat-composer-action-color);font-size:16px;padding:2px 4px}
+.pv-status-bar{position:relative;z-index:3;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 12px;margin:10px 18px 0;border-radius:9px;font-size:13px}
+.pv-msg-row{display:flex;gap:9px;align-items:flex-start}
+.pv-avatar{flex:0 0 auto;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(255,255,255,.10);color:#e8ecf2;overflow:visible;margin-top:16px}
+.pv-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.pv-bg-layer{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;pointer-events:none}
+body[data-thinking="off"] .tav-message-reasoning{display:none}
+body[data-lindy="off"] .lsb-panel,body[data-lindy="off"] .lp-fold{display:none}
+body[data-statusbar="off"] .pv-status-bar{display:none}
+body[data-avatar="off"] .pv-avatar{display:none}
+body[data-speaker="off"] .tavo-speaker-name{display:none}
+</style>
+<style id="tav-dynamic-style"></style>
+<style id="tav-custom-style"></style>
+<style id="tav-backdrop-style"></style>
+</head>
+<body>
+<div class="tav-chat-container">
+  <div class="pv-status-bar" id="pv-status-bar"><span>◆</span><span>雪夜 · 心绪 平静 · 23:47</span></div>
+  <div class="tav-items">
+
+    <div class="tav-message tav-user-message tav-message-right">
+      <div class="pv-msg-row">
+        <div class="tav-bubble-wrapper tav-user-bubble-wrapper">
+          <div class="tav-bubble tav-user-bubble tavo-bubble tavo-user-bubble">
+            <div class="tav-bubble-content tav-user-bubble-content tavo-bubble-content tavo-user-bubble-content">
+              <div class="tav-bubble-content-body tavo-bubble-content-body pv-user-body">
+                <div class="lp-body">那就再待一会儿。<em>等到月亮上来</em>，我们把灯挂在桅杆上。<q>「夜色比白天更适合赶路」</q></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pv-avatar pv-user-avatar tavo-user-avatar tavo-avatar">我</div>
+      </div>
+    </div>
+
+    <div class="tav-message tav-character-message tav-message-left">
+      <div class="pv-msg-row">
+        <div class="pv-avatar pv-char-avatar tavo-character-avatar tavo-avatar">屿</div>
+        <div class="tav-bubble-wrapper tav-character-bubble-wrapper">
+          <div class="tav-speaker-name tavo-speaker-name">屿</div>
+          <div class="tav-bubble tav-character-bubble tavo-bubble tavo-character-bubble">
+            <div class="tav-bubble-content tav-character-bubble-content tavo-bubble-content tavo-character-bubble-content">
+              <div class="tav-bubble-content-body tavo-bubble-content-body pv-char-body">
+                <details class="tav-message-reasoning tavo-message-reasoning" open>
+                  <summary>已深度思考</summary>
+                  <div class="tav-message-reasoning-body">用户想留在这里看夜景。应当描述此刻的光线与声音，再给出行动的理由。</div>
+                </details>
+                <div class="tav-message-content tavo-message-content">
+                  <div class="lp-body">山顶的雪还没化。我把窗开了条缝，<em>风里有松脂和冷石头的味道</em>。要不要现在上去看看？日出前的那段时间，<q>整面雪坡是淡青色的</q>。夜里的山道只有我们两个人，<em>雪光比月光还要亮一些</em>。</div>
+                  <div id="pv-lindy"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tav-action-bar">
+        <div class="tav-action-bar-button-group tavo-action-bar-button-group">
+          <button class="tav-action-bar-button tav-action-bar-button-regenerate tavo-action-bar-button" title="重新生成"></button>
+          <button class="tav-action-bar-button tav-action-bar-button-continue tavo-action-bar-button" title="继续"></button>
+          <button class="tav-action-bar-button tav-action-bar-button-inspire tavo-action-bar-button" title="灵感"></button>
+          <button class="tav-action-bar-button tav-action-bar-button-tts tavo-action-bar-button" title="朗读"></button>
+          <button class="tav-action-bar-button tav-action-bar-button-copy tavo-action-bar-button" title="复制"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tav-message tav-user-message tav-message-right">
+      <div class="pv-msg-row">
+        <div class="tav-bubble-wrapper tav-user-bubble-wrapper">
+          <div class="tav-bubble tav-user-bubble tavo-bubble tavo-user-bubble">
+            <div class="tav-bubble-content tav-user-bubble-content tavo-bubble-content tavo-user-bubble-content">
+              <div class="tav-bubble-content-body tavo-bubble-content-body pv-user-body2">
+                <div class="lp-body">好，<em>带路吧</em>。你走前面，我看着灯。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pv-avatar pv-user-avatar tavo-user-avatar tavo-avatar">我</div>
+      </div>
+    </div>
+
+    <div class="tav-message tav-character-message tav-message-left">
+      <div class="pv-msg-row">
+        <div class="pv-avatar pv-char-avatar tavo-character-avatar tavo-avatar">屿</div>
+        <div class="tav-bubble-wrapper tav-character-bubble-wrapper">
+          <div class="tav-bubble tav-character-bubble tavo-bubble tavo-character-bubble">
+            <div class="tav-bubble-content tav-character-bubble-content tavo-bubble-content tavo-character-bubble-content">
+              <div class="tav-bubble-content-body tavo-bubble-content-body pv-char-body2">
+                <div class="tav-message-content tavo-message-content">
+                  <div class="lp-body"><q>「小心脚下，左边是悬岩。」</q>他伸手把我往里带了带，<em>石缝里有炉火的暖意透出来</em>。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <section class="tav-chat-composer tav-composer tavo-composer">
+    <div class="tav-chat-composer-shell tav-composer-shell tavo-composer-shell">
+      <button type="button" class="tav-composer-leading-button" data-tav-role="plus"><span class="tav-composer-add-icon tavo-composer-add-icon" data-tav-role="plus-icon">＋</span></button>
+      <textarea class="tav-chat-composer-input tav-composer-input tavo-composer-input" rows="1" id="composer-input" placeholder="说点什么…"></textarea>
+      <button type="button" class="tav-composer-trailing-button" data-tav-role="trailing"><span class="tav-composer-send-icon tavo-composer-send-icon" data-tav-role="trailing-icon">➤</span></button>
+    </div>
+  </section>
+</div>
+<script>
+(function(){
+  var P = (parent && parent.__THM_PAYLOAD) || {};
+  var T = P.theme || {};
+  function $(id){ return document.getElementById(id); }
+
+  /* ---- 颜色 / 字体工具 ---- */
+  function argbNum(v){
+    if (typeof v !== 'number' || !isFinite(v)) return null;
+    var n = Math.round(v);
+    if (n < -2147483648 || n > 4294967295) return null;
+    var u = n >>> 0; // 负数 = 有符号 32 位 ARGB（林喵等主题用此写法）
+    var a = (u >>> 24) & 255, r = (u >>> 16) & 255, g = (u >>> 8) & 255, b = u & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + (a / 255).toFixed(3) + ')';
+  }
+  function cssVal(v){
+    if (v == null) return null;
+    if (typeof v === 'number') return argbNum(v);
+    if (typeof v === 'string'){ var s = v.trim(); if (s.charAt(0) === '#') return s; var n = Number(s); return isFinite(n) ? argbNum(n) : s; }
+    return null;
+  }
+  function fsCss(f){
+    if (!f) return '';
+    var s = '';
+    if (f.fontFamily) s += 'font-family:' + f.fontFamily + ';';
+    if (f.fontSize != null && f.fontSize !== '') s += 'font-size:' + f.fontSize + 'px;';
+    if (f.fontWeight != null && f.fontWeight !== '') s += 'font-weight:' + f.fontWeight + ';';
+    if (f.fontStyle) s += 'font-style:' + f.fontStyle + ';';
+    var c = cssVal(f.color); if (c) s += 'color:' + c + ';';
+    return s;
+  }
+
+  /* ---- 动态样式（模拟 app 依据 theme.json 生成的样式，先于 custom_css）---- */
+  var bg = T.background || {}, cb = T.character_bubble || {}, ub = T.user_bubble || {},
+      cf = T.character_bubble_font || {}, uf = T.user_bubble_font || {},
+      th = T.thinking || {}, sb = T.status_bar || {}, co = T.console || {},
+      cav = T.character_avatar || {}, uav = T.user_avatar || {};
+  var d = [];
+  function put(s){ if (s) d.push(s); }
+
+  // 输入区变量（对应 app bundle 的 --tav-chat-composer-*）
+  put(':root{'
+    + '--tav-chat-composer-shell-background:' + (cssVal(co.color) || 'rgba(202,204,209,.4)') + ';'
+    + '--tav-chat-composer-backdrop-blur:' + (co.blur != null ? co.blur : 16) + 'px;'
+    + '--tav-chat-composer-radius:' + (co.radius != null ? co.radius : 7) + 'px;'
+    + '--tav-chat-composer-text-color:' + (cssVal(co.fontColor) || '#fff') + ';'
+    + '--tav-chat-composer-placeholder-color:' + (cssVal(co.placeholderColor) || 'rgba(255,255,255,.5)') + ';'
+    + '--tav-chat-composer-action-color:' + (cssVal(co.sendColor) || '#fff') + ';}');
+  var coFont = 'font-size:' + (co.fontSize != null ? co.fontSize : 16) + 'px;font-weight:' + (co.fontWeight != null ? co.fontWeight : 400) + ';';
+  put('.tavo-composer-input{' + coFont + 'color:' + (cssVal(co.fontColor) || '#fff') + '}');
+
+  // 背景（webview 底色由 Flutter 传入 body）
+  put('body{background:' + (cssVal(bg.color) || '#17181c') + '}');
+
+  // 气泡
+  function bubble(sel, o){
+    var s = sel + '{';
+    var c = cssVal(o.color); if (c) s += 'background:' + c + ';';
+    if (o.radius != null) s += 'border-radius:' + o.radius + 'px;';
+    if (o.blur) s += '-webkit-backdrop-filter:blur(' + o.blur + 'px);backdrop-filter:blur(' + o.blur + 'px);';
+    put(s + '}');
+  }
+  bubble('.tavo-character-bubble', cb);
+  bubble('.tavo-user-bubble', ub);
+  if (ub.alignment === 'left') put('.tav-user-message{justify-content:flex-start}');
+
+  // 字体
+  function fontRules(base, f){
+    put(base + ' .tavo-bubble-content-body{' + fsCss(f.textStyle) + '}');
+    if (f.toneHighlight !== false)
+      put(base + ' .tavo-bubble-content-body em,' + base + ' .tavo-bubble-content-body i{' + fsCss(f.toneTextStyle) + '}');
+    if (f.quoteHighlight !== false)
+      put(base + ' .tavo-bubble-content-body q,' + base + ' .tavo-bubble-content-body blockquote{' + fsCss(f.quoteTextStyle) + '}');
+  }
+  fontRules('.tavo-character-bubble', cf);
+  fontRules('.tavo-user-bubble', uf);
+
+  // 思考块
+  if (T.thinking){
+    var s = '.tavo-message-reasoning{';
+    var c = cssVal(th.backgroundColor); if (c) s += 'background:' + c + ';';
+    c = cssVal(th.color); if (c) s += 'color:' + c + ';';
+    if (th.fontSize != null) s += 'font-size:' + th.fontSize + 'px;';
+    if (th.fontWeight != null) s += 'font-weight:' + th.fontWeight + ';';
+    put(s + '}');
+  }
+
+  // 状态栏
+  if (T.status_bar){
+    var s2 = '#pv-status-bar{';
+    var c2 = cssVal(sb.backgroundColor); if (c2) s2 += 'background:' + c2 + ';';
+    c2 = cssVal(sb.color); if (c2) s2 += 'color:' + c2 + ';';
+    if (sb.fontSize != null) s2 += 'font-size:' + sb.fontSize + 'px;';
+    if (sb.fontWeight != null) s2 += 'font-weight:' + sb.fontWeight + ';';
+    put(s2 + '}');
+  }
+
+  // 名字显示 / 头像圆角
+  if (cav.name === false) put('.tavo-speaker-name{display:none}');
+  if (cav.radius != null) put('.pv-char-avatar{border-radius:' + cav.radius + 'px}');
+  if (uav.radius != null) put('.pv-user-avatar{border-radius:' + uav.radius + 'px}');
+
+  $('tav-dynamic-style').textContent = d.join('\\n');
+
+  /* ---- custom_css（对应 #tav-custom-style，位于动态样式之后）---- */
+  $('tav-custom-style').textContent = P.customCss || '';
+
+  /* ---- 预览底色：黑/灰/白/棋盘/网格，用来检查半透明效果 ----
+     注入在 custom_css 之后，同特异性下靠后 + !important 覆盖主题背景 */
+  function backdropCss(key){
+    var m = {
+      black: 'background:#0a0a0c',
+      darkgray: 'background:#2b2e35',
+      gray: 'background:#808080',
+      white: 'background:#ffffff',
+      checker: 'background-color:#fff;background-image:repeating-conic-gradient(#fff 0 25%,#cfcfcf 0 50%);background-size:16px 16px;background-position:50% 50%',
+      grid: 'background-color:#2b2e35;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.09) 0 1px,transparent 1px 18px),repeating-linear-gradient(90deg,rgba(255,255,255,.09) 0 1px,transparent 1px 18px)'
+    }[key];
+    if (!m) return '';
+    return 'html,body{' + m + '!important}'
+      + '.pv-bg-layer{display:none!important}';
+  }
+  function applyBackdrop(key){
+    var el = $('tav-backdrop-style');
+    if (el) el.textContent = backdropCss(key);
+  }
+  applyBackdrop(P.backdrop);
+
+  /* ---- 背景图层 ---- */
+  if (P.bgImageUrl){
+    var layer = document.createElement('div');
+    layer.className = 'pv-bg-layer';
+    var op = (bg.imageOpacity != null) ? Number(bg.imageOpacity) : 0.55;
+    layer.style.backgroundImage = 'url("' + P.bgImageUrl + '")';
+    layer.style.opacity = isFinite(op) ? String(op) : '0.55';
+    var ct = document.querySelector('.tav-chat-container');
+    ct.insertBefore(layer, ct.firstChild);
+  }
+
+  /* ---- lindy 卡片样例 ---- */
+  $('pv-lindy').innerHTML =
+    '<div class="lsb-panel">'
+    + '<div class="lsb-item"><span class="lsb-item-icon">◈</span><span class="lsb-item-label">山径</span><span class="lsb-item-value">北坡</span></div>'
+    + '<div class="lsb-row"><span class="lsb-lbl">风</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:72%"></span></span></div>'
+    + '<div class="lsb-row"><span class="lsb-lbl">月相</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:12%"></span></span></div>'
+    + '<div class="lsb-row"><span class="lsb-lbl">能见度</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:88%"></span></span></div>'
+    + '</div>'
+    + '<details class="lp-fold" open><summary class="lp-fold-head">▸ 观察手记</summary>'
+    + '<div class="lp-fold-body">折叠栏正文：这一段用来检验折叠区文字与底色的对比度，长句会在容器内自动换行。</div></details>';
+
+  /* ---- 开关 ---- */
+  function applyUi(ui){
+    ui = ui || {};
+    var b = document.body;
+    b.dataset.thinking = ui.thinking === false ? 'off' : 'on';
+    b.dataset.lindy = ui.lindy === false ? 'off' : 'on';
+    b.dataset.statusbar = ui.statusbar === false ? 'off' : 'on';
+    b.dataset.avatar = ui.avatar === false ? 'off' : 'on';
+    b.dataset.speaker = ui.speaker === false ? 'off' : 'on';
+  }
+  applyUi(P.ui);
+  window.addEventListener('message', function(ev){
+    var m = ev.data;
+    if (!m) return;
+    if (m.type === 'thm-ui') applyUi(m.ui);
+    if (m.type === 'thm-backdrop') applyBackdrop(m.key);
+  });
+
+  /* ---- 拖放转发：iframe 内的拖拽事件不会冒泡到父页，转发给父页统一处理 ---- */
+  window.addEventListener('dragenter', function(e){ e.preventDefault(); if (parent.__thmDragIn) parent.__thmDragIn(); });
+  window.addEventListener('dragover', function(e){ e.preventDefault(); });
+  window.addEventListener('dragleave', function(){ if (parent.__thmDragOut) parent.__thmDragOut(); });
+  window.addEventListener('drop', function(e){
+    e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (parent.__thmDropFile) parent.__thmDropFile(f || null);
+  });
+
+  /* ---- 空态提示 ---- */
+  if (!P.theme){
+    var hint = document.createElement('div');
+    hint.style.cssText = 'position:fixed;right:16px;top:14px;z-index:9;background:rgba(18,20,26,.72);color:#cdd3de;'
+      + 'font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);'
+      + '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)';
+    hint.textContent = '示例内容 · 导入 .thm 后应用主题效果';
+    document.body.appendChild(hint);
+  }
+
+  /* ---- 对比度计算（渲染后回传父页）---- */
+  function parseCol(str){
+    if (!str) return null;
+    var m = String(str).match(/rgba?\\(([^)]+)\\)/);
+    if (!m) return null;
+    var p = m[1].split(',').map(parseFloat);
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  }
+  function opaqueBg(el){
+    var n = el;
+    while (n && n.nodeType === 1){
+      var c = parseCol(getComputedStyle(n).backgroundColor);
+      if (c && c.a >= 0.95) return c;
+      n = n.parentElement;
+    }
+    return null;
+  }
+  function srgbLum(c){
+    function f(v){ v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  }
+  function ratio(a, b){
+    var l1 = srgbLum(a), l2 = srgbLum(b);
+    var hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  function pair(label, fgEl, bgEl){
+    if (!fgEl) return { label: label, ratio: null };
+    var fg = parseCol(getComputedStyle(fgEl).color);
+    var bgc = opaqueBg(bgEl || fgEl);
+    if (!fg || !bgc || fg.a < 0.5) return { label: label, ratio: null };
+    var fr = Math.round(fg.r * fg.a + bgc.r * (1 - fg.a));
+    var fg2 = { r: fr, g: Math.round(fg.g * fg.a + bgc.g * (1 - fg.a)), b: Math.round(fg.b * fg.a + bgc.b * (1 - fg.a)) };
+    return { label: label, ratio: ratio(fg2, bgc) };
+  }
+  function q(sel){ return document.querySelector(sel); }
+  function report(){
+    var cbEl = q('.pv-char-body'), ubEl = q('.pv-user-body');
+    var rows = [
+      pair('角色·正文', cbEl, q('.tavo-character-bubble')),
+      pair('角色·语气 em', cbEl && cbEl.querySelector('em'), q('.tavo-character-bubble')),
+      pair('角色·引文 q', cbEl && cbEl.querySelector('q'), q('.tavo-character-bubble')),
+      pair('用户·正文', ubEl, q('.tavo-user-bubble')),
+      pair('用户·语气 em', ubEl && ubEl.querySelector('em'), q('.tavo-user-bubble')),
+      pair('用户·引文 q', ubEl && ubEl.querySelector('q'), q('.tavo-user-bubble')),
+      pair('思考块', q('.tav-message-reasoning-body'), q('.tav-message-reasoning')),
+      pair('状态栏', q('#pv-status-bar span:nth-child(2)'), q('#pv-status-bar')),
+      pair('输入框', q('#composer-input'), q('.tavo-composer-shell'))
+    ];
+    try { parent.postMessage({ type: 'thm-contrast', rows: rows }, '*'); } catch (e) {}
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ setTimeout(report, 60); });
+  else setTimeout(report, 120);
+})();
+<\/script>
+</body>
+</html>`;
+
+/* 初始就渲染外壳：空态有示例内容，且 iframe 区域从一开始就能响应拖放转发（含视图模式恢复） */
+renderLibrary();
+applyViewMode();
+</script>
+
+<!-- ==== Lin Files 宿主接口（embed 模式）==== -->
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var embed = params.get('embed') === '1';
+  window.__THM_EMBED = embed;
+  if (embed) {
+    document.body.classList.add('embed');
+    var st = document.createElement('style');
+    st.textContent = [
+      '#side #drop{display:none!important}',
+      '#side #btn-row{display:none!important}',
+      '#side #file-input,#side #dir-input{display:none!important}',
+      '#side #sec-empty{display:none!important}',
+      '#side #sec-library{display:none!important}',
+      '#side #sec-export{display:none!important}',
+      '#side-head h1{font-size:13px}',
+      '#side-head .sub{display:none}'
+    ].join('\n');
+    document.head.appendChild(st);
+  }
+  /* 供 Lin Files 调用：载入主题字节 / 按设备截图（返回 dataURL） */
+  window.__thmHost = {
+    version: '1',
+    hasTheme: function(){ return !!(typeof state !== 'undefined' && state.theme); },
+    name: function(){ return (typeof state !== 'undefined' && state.theme && state.theme.name) || ''; },
+    load: function(u8, fileName){
+      var f = new File([u8], fileName || 'theme.thm', { type: 'application/zip' });
+      return importFiles([{ file: f, rel: '' }]);
+    },
+    shot: async function(dev){
+      var d = dev === 'mfull'
+        ? { W: 390, H: 844, label: '手机全面屏' }
+        : dev === 'm916'
+          ? { W: 390, H: Math.round(390 * 16 / 9), label: '手机916' }
+          : pcDims();
+      var canvas = await captureFrame(d.W, d.H);
+      return { dataUrl: canvas.toDataURL('image/png'), label: d.label, name: (state.theme && state.theme.name) || '' };
+    }
+  };
+})();
+</script></body>
+</html>

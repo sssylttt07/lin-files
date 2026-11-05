@@ -1,0 +1,4 @@
+{"chat_metadata":{"integrity":"00000000-0000-0000-0000-000000000000"},"user_name":"你","character_name":"示例角色"}
+{"name":"示例角色","is_user":false,"is_system":false,"send_date":"2026-01-01T09:00:00.000Z","mes":"（从书架后探出头）你好——想找哪一类的书？我可以帮你查索引。","extra":{},"swipe_id":0,"swipes":["（从书架后探出头）你好——想找哪一类的书？我可以帮你查索引。"],"swipe_info":[{"send_date":"2026-01-01T09:00:00.000Z","extra":{}}]}
+{"name":"你","is_user":true,"is_system":false,"send_date":"2026-01-01T09:01:00.000Z","mes":"想找一本讲星空的图册。","extra":{}}
+{"name":"示例角色","is_user":false,"is_system":false,"send_date":"2026-01-01T09:02:00.000Z","mes":"（翻开抽屉，指尖划过一排卡片）天文类在东侧第三排——跟我来吧，正好新到了几本，还没上架。","extra":{},"swipe_id":0,"swipes":["（翻开抽屉，指尖划过一排卡片）天文类在东侧第三排——跟我来吧，正好新到了几本，还没上架。"],"swipe_info":[{"send_date":"2026-01-01T09:02:00.000Z","extra":{}}]}

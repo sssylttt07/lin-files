@@ -1,0 +1,20 @@
+# ---- 个人数据：永不入库 ----
+data/
+config.json
+server.log
+server.err.log
+*.log
+
+# ---- 运行时（随 Release 附件分发，不入库；scripts/install-runtime.ps1 可拉取）----
+runtime/
+
+# ---- Lin Hub 内嵌应用（modules/lin-hub）运行时 ----
+modules/lin-hub/linhub-config.json
+modules/lin-hub/backups/
+
+# ---- 备份 ----
+*.bak
+
+# ---- 系统杂项 ----
+Thumbs.db
+desktop.ini

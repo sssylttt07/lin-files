@@ -1,0 +1,251 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lin Hub</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="stylesheet" href="/app.css?v=7">
+</head>
+<body>
+<header>
+  <div class="brand">Lin Hub</div>
+  <div class="acct-bar">
+    <span id="acctDot" class="dot off"></span>
+    <select id="acctSelect"></select>
+    <button id="btnAccounts" class="ghost">账号管理</button>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="themes">主题库</button>
+  <button class="tab" data-tab="batch">批量任务</button>
+  <button class="tab" data-tab="library">本地库</button>
+  <button class="tab" data-tab="covers">封面</button>
+  <button class="tab" data-tab="plugins">插件</button>
+  <button class="tab" data-tab="gitee">项目推送</button>
+</nav>
+
+<main>
+  <!-- 主题库 -->
+  <section id="tab-themes" class="panel active">
+    <div class="toolbar">
+      <button id="btnThemesRefresh">刷新列表</button>
+      <input id="themeSearch" type="text" placeholder="搜索主题名…">
+      <span id="themeCount" class="muted"></span>
+    </div>
+    <div class="tablewrap">
+      <table id="themesTable">
+        <thead><tr><th>封面</th><th>名称</th><th>已发布</th><th>最新</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 批量 -->
+  <section id="tab-batch" class="panel">
+    <div class="toolbar col">
+      <div class="row">
+        <label>主题目录</label>
+        <input id="batchDir" type="text" placeholder="D:\…\主题目录（含 .thm）">
+        <button id="btnPlan">生成计划</button>
+      </div>
+      <div class="row">
+        <label>封面目录（可选）</label>
+        <input id="batchCoverDir" type="text" placeholder="留空则不匹配本地封面">
+        <span class="muted">版本策略</span>
+        <label class="inline"><input type="radio" name="policy" value="patch" checked>patch+1</label>
+        <label class="inline"><input type="radio" name="policy" value="minor">minor+1</label>
+      </div>
+      <div class="row"><span class="muted">hub 上已存在的主题 → 更新包+发布 / 仅换封面；hub 上没有的主题 → 自动列为「新建并发布」，可逐个填版本号</span></div>
+    </div>
+    <div id="planBox" class="hidden">
+      <div class="toolbar">
+        <button id="btnRunBatch" class="primary">执行选中</button>
+        <button id="btnAll">全选</button>
+        <button id="btnNone">全不选</button>
+        <span id="planStat" class="muted"></span>
+      </div>
+      <div class="tablewrap">
+        <table id="planTable">
+          <thead><tr><th><input type="checkbox" id="planAll"></th><th>本地文件</th><th>本地名</th><th>Hub名</th><th>已发布</th><th>最新</th><th>封面</th><th>操作</th><th>备注</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="jobBox" class="hidden">
+        <div class="progresswrap"><div id="jobBar"></div></div>
+        <div id="jobText" class="muted"></div>
+        <div class="tablewrap"><table id="jobTable"><thead><tr><th>文件</th><th>操作</th><th>结果</th><th>备注</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 本地库 -->
+  <section id="tab-library" class="panel">
+    <div class="toolbar col">
+      <div class="row">
+        <label>库目录</label>
+        <input id="libDir" type="text" placeholder="D:\…\包含 .thm / .tpg 的目录">
+        <button id="btnLibScan" class="primary">扫描</button>
+        <span id="libStat" class="muted"></span>
+      </div>
+      <div class="row"><span class="muted">每个本地包可手动绑定：Tavo Hub 主题/插件、Gitee 项目、GitHub 项目（存 data\bindings.json）。批量任务匹配 hub 时会优先用这里的绑定。</span></div>
+    </div>
+    <div class="tablewrap">
+      <table id="libTable">
+        <thead><tr><th>文件</th><th>类型</th><th>包内名称</th><th>版本</th><th>Tavo Hub</th><th>Gitee</th><th>GitHub</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 封面 -->
+  <section id="tab-covers" class="panel">
+    <div class="toolbar">
+      <button id="btnCoversRefresh">刷新</button>
+      <input id="coverSearch" type="text" placeholder="搜索…">
+      <span class="muted">仅换封面：不重传 .thm，服务端沿用旧包，版本 +1</span>
+    </div>
+    <div id="coverGrid" class="grid"></div>
+  </section>
+
+  <!-- 插件 -->
+  <section id="tab-plugins" class="panel">
+    <div class="toolbar">
+      <button id="btnPluginsRefresh">刷新列表</button>
+      <button id="btnPluginCreate" class="ghost">上传新插件</button>
+    </div>
+    <div class="tablewrap">
+      <table id="pluginsTable">
+        <thead><tr><th>名称</th><th>标签</th><th>外链</th><th>更新时间</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 项目推送（Gitee / GitHub） -->
+  <section id="tab-gitee" class="panel">
+    <div class="toolbar">
+      <button class="pfbtn active" id="pfGitee" data-pf="gitee">Gitee</button>
+      <button class="pfbtn" id="pfGithub" data-pf="github">GitHub</button>
+    </div>
+    <div class="toolbar" id="pfGiteeBar">
+      <button id="btnGiteeRefresh">刷新</button>
+      <button id="btnGiteeSettings" class="ghost">设置（令牌 / 仓库）</button>
+      <button id="btnGiteeNewRepo" class="ghost">新建仓库</button>
+      <span id="giteeHint" class="muted"></span>
+    </div>
+    <div class="toolbar hidden" id="pfGithubBar">
+      <button id="btnGhRefresh">刷新</button>
+      <button id="btnGhSettings" class="ghost">设置（令牌）</button>
+      <button id="btnGhNew" class="primary">推送新项目</button>
+      <span id="ghHint" class="muted"></span>
+    </div>
+    <div id="pane-gitee">
+      <div class="tablewrap">
+        <table id="giteeTable">
+          <thead><tr><th>项目</th><th>版本</th><th>本地文件</th><th>最近推送</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="pane-github" class="hidden">
+      <div class="tablewrap">
+        <table id="ghTable">
+          <thead><tr><th>项目</th><th>版本</th><th>本地文件</th><th>最近推送</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 弹层：主题详情 -->
+<div id="drawerMask" class="mask hidden">
+  <div id="drawer" class="drawer">
+    <div class="drawer-head">
+      <h3 id="drawerTitle">主题详情</h3>
+      <button id="drawerClose" class="ghost">✕</button>
+    </div>
+    <div id="drawerBody" class="drawer-body"></div>
+  </div>
+</div>
+
+<!-- 弹层：账号（Tavo Hub / Gitee / GitHub 三平台） -->
+<div id="acctMask" class="mask hidden">
+  <div class="modal">
+    <div class="drawer-head">
+      <h3>账号管理</h3>
+      <div>
+        <button class="pfbtn active" data-apf="tavo">Tavo Hub</button>
+        <button class="pfbtn" data-apf="gitee">Gitee</button>
+        <button class="pfbtn" data-apf="github">GitHub</button>
+      </div>
+      <button id="acctClose" class="ghost">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="acctPane-tavo">
+        <div id="acctList"></div>
+        <hr>
+        <h4>邮箱验证码登录</h4>
+        <div class="row">
+          <input id="loginEmail" type="email" placeholder="邮箱">
+          <button id="btnSendCode">发送验证码</button>
+        </div>
+        <div class="row">
+          <input id="loginCode" type="text" placeholder="验证码" maxlength="8">
+          <input id="loginName" type="text" placeholder="备注名（可选）">
+          <button id="btnLogin" class="primary">登录</button>
+        </div>
+        <div id="loginMsg" class="muted"></div>
+        <hr>
+        <div class="row">
+          <button id="btnImportBrowser">从浏览器导入会话</button>
+          <span class="muted">读取 Brave/Chrome 本地存储中已登录的 hub 会话（浏览器需已关闭）</span>
+        </div>
+        <div id="importMsg" class="muted"></div>
+        <hr>
+        <h4>手动添加 sid</h4>
+        <div class="row">
+          <input id="manualSid" type="text" placeholder="sid（uuid）">
+          <input id="manualName" type="text" placeholder="备注名（可选）">
+          <button id="btnManualAdd">添加</button>
+        </div>
+      </div>
+      <div id="acctPane-gitee" class="hidden">
+        <div id="pactList-gitee"></div>
+        <hr>
+        <h4>添加 Gitee 账号（私人令牌）</h4>
+        <div class="row">
+          <input id="giteeTokIn" type="password" placeholder="Gitee 私人令牌">
+          <input id="giteeTokName" type="text" placeholder="备注名（可选）" style="min-width:130px">
+          <button id="btnGiteeTokAdd" class="primary">添加并验证</button>
+        </div>
+        <div class="row"><span class="muted">没有令牌？<a href="https://gitee.com/profile/personal_access_tokens" target="_blank">去 Gitee 创建</a>（勾选 projects 读写 + user_info）。推送用的组织/仓库在「项目推送 → 设置」里配。</span></div>
+        <div id="giteeTokMsg" class="muted"></div>
+      </div>
+      <div id="acctPane-github" class="hidden">
+        <div id="pactList-github"></div>
+        <hr>
+        <h4>添加 GitHub 账号（访问令牌）</h4>
+        <div class="row">
+          <input id="githubTokIn" type="password" placeholder="GitHub personal access token">
+          <input id="githubTokName" type="text" placeholder="备注名（可选）" style="min-width:130px">
+          <button id="btnGithubTokAdd" class="primary">添加并验证</button>
+        </div>
+        <div class="row"><span class="muted">没有令牌？<a href="https://github.com/settings/personal-access-tokens/new" target="_blank">创建 fine-grained token</a>（对目标仓库勾 Contents: Read and write）或 <a href="https://github.com/settings/tokens/new" target="_blank">经典 token</a>（勾 repo）。默认仓库在「项目推送 → 设置」里配。</span></div>
+        <div id="githubTokMsg" class="muted"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 弹层：通用小对话框 -->
+<div id="opMask" class="mask hidden">
+  <div class="modal" id="opModal"></div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/app.js?v=7"></script>
+</body>
+</html>
