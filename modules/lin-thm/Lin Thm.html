@@ -676,7 +676,7 @@ async function processThemeCss(z, theme, rawCss, entries){
       if (/^font\//.test(mime)){
         const url = URL.createObjectURL(new Blob([data], { type: mime }));
         assetMap.set(normPath(e.name), url);
-        fontBlobs.push({ url, u8: data, mime });
+        fontBlobs.push({ url, u8: data, mime, name: e.name });
       } else {
         const url = toDataURL(data, mime);
         assetMap.set(normPath(e.name), url);
@@ -737,6 +737,7 @@ async function renderTheme(z, theme, entries, fileName, procIn){
     theme,
     customCss: proc.css,
     bgImageUrl: proc.bgImgUrl,
+    fonts: (proc.fontBlobs || []).map(f => ({ url: f.url, name: f.name || '' })),
     ui: currentUi(),
     backdrop: currentBackdrop()
   };
@@ -1457,57 +1458,34 @@ const SHELL = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="/thmdist/css/bundle.min.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+/* 预览专用薄层：真机基础布局全部来自 /thmdist/css/bundle.min.css（勿在此重复定义 tav-* 基础规则） */
 html,body{height:100%}
-body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
-.tav-chat-container{display:flex;flex-direction:column;height:100vh;width:100%;max-width:100%;overflow-x:hidden;position:relative;isolation:isolate;overflow:hidden}
-.tav-items{position:relative;z-index:2;flex:1;overflow-y:auto;padding:26px 18px 10px;display:flex;flex-direction:column;gap:12px}
-.tav-message{margin:4px 0}
-.tav-user-message{display:flex;justify-content:flex-end}
-.tav-character-message{display:flex;flex-direction:column}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei','LXGW WenKai',sans-serif}
+.tav-chat-container{position:relative;isolation:isolate}
+.tav-items{position:relative;z-index:2;padding:18px 18px 10px;display:flex;flex-direction:column;gap:14px}
 .tav-bubble-wrapper{max-width:86%}
-.tav-user-bubble-wrapper{margin-left:auto}
-.tavo-speaker-name{margin:0 4px 5px}
-.tav-bubble{padding:10px 14px}
-.tav-items::-webkit-scrollbar{width:6px}
-.tav-items::-webkit-scrollbar-thumb{background:rgba(128,128,128,.35);border-radius:3px}
-.tav-items::-webkit-scrollbar-track{background:transparent}
-.tav-bubble-content-body{font-size:16px;line-height:1.75}
-.tav-message-reasoning{margin:0 0 8px;padding:8px 10px;border-radius:8px}
-.tav-message-reasoning summary{cursor:pointer;list-style:none}
-.tav-message-reasoning summary::-webkit-details-marker{display:none}
-.tav-message-reasoning-body{margin-top:6px;line-height:1.6}
-.tav-action-bar{display:flex;gap:6px;margin:6px 2px 0;align-items:center;max-width:100%}
-.tav-action-bar-button-group{display:flex;align-items:center;gap:6px}
-.tav-action-bar-button{width:26px;height:22px;background:none;border:none;cursor:pointer;font-size:13px;line-height:22px;text-align:center;padding:0}
-.tav-composer{position:relative;z-index:3;padding-bottom:14px}
-.tav-chat-composer-shell{display:flex;align-items:center;gap:8px;padding:8px 10px;
-  --tav-chat-composer-shell-background:rgba(202,204,209,.4);
-  --tav-chat-composer-backdrop-blur:16px;
-  --tav-chat-composer-radius:7px;
-  --tav-chat-composer-text-color:#fff;
-  --tav-chat-composer-placeholder-color:rgba(255,255,255,.5);
-  --tav-chat-composer-action-color:#fff;
-  background:var(--tav-chat-composer-shell-background);
-  -webkit-backdrop-filter:blur(var(--tav-chat-composer-backdrop-blur));
-  backdrop-filter:blur(var(--tav-chat-composer-backdrop-blur));
-  border-radius:var(--tav-chat-composer-radius);
-  color:var(--tav-chat-composer-text-color);
-}
-.tav-chat-composer-input{flex:1;border:none;outline:none;resize:none;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:1.5}
-.tav-chat-composer-input::placeholder{color:var(--tav-chat-composer-placeholder-color)}
-.tav-composer-leading-button,.tav-composer-trailing-button{cursor:pointer;background:none;border:none;color:var(--tav-chat-composer-action-color);font-size:16px;padding:2px 4px}
-.pv-status-bar{position:relative;z-index:3;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 12px;margin:10px 18px 0;border-radius:9px;font-size:13px}
-.pv-msg-row{display:flex;gap:9px;align-items:flex-start}
-.pv-avatar{flex:0 0 auto;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(255,255,255,.10);color:#e8ecf2;overflow:visible;margin-top:16px}
-.pv-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
+.pv-avatar-initial{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.10);color:#e8ecf2;font-size:13px}
 .pv-bg-layer{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;pointer-events:none}
 body[data-thinking="off"] .tav-message-reasoning{display:none}
 body[data-lindy="off"] .lsb-panel,body[data-lindy="off"] .lp-fold{display:none}
-body[data-statusbar="off"] .pv-status-bar{display:none}
-body[data-avatar="off"] .pv-avatar{display:none}
+
+body[data-avatar="off"] .tav-avatar{display:none}
 body[data-speaker="off"] .tavo-speaker-name{display:none}
+</style>
+<style id="tav-builtin-fonts">
+/* 内置字体包：主题声明这些族名时即使包内没有字体文件也能渲染 */
+@font-face{font-family:'LXGW WenKai';src:url('/thmfonts/lxgwwenkai.woff2') format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'LXGW WenKai Medium';src:url('/thmfonts/lxgwwenkai.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'霞鹜文楷';src:url('/thmfonts/lxgwwenkai.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'霞鹜文楷 Medium';src:url('/thmfonts/lxgwwenkai.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'LXGWWenKai';src:url('/thmfonts/lxgwwenkai.woff2') format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Ma Shan Zheng';src:url('/thmfonts/mashanzheng.ttf') format('truetype');font-display:swap}
+@font-face{font-family:'MaShanZheng';src:url('/thmfonts/mashanzheng.ttf') format('truetype');font-display:swap}
+@font-face{font-family:'马善政';src:url('/thmfonts/mashanzheng.ttf') format('truetype');font-display:swap}
+@font-face{font-family:'马善政毛笔楷书';src:url('/thmfonts/mashanzheng.ttf') format('truetype');font-display:swap}
 </style>
 <style id="tav-dynamic-style"></style>
 <style id="tav-custom-style"></style>
@@ -1515,81 +1493,60 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
 </head>
 <body>
 <div class="tav-chat-container">
-  <div class="pv-status-bar" id="pv-status-bar"><span>◆</span><span>雪夜 · 心绪 平静 · 23:47</span></div>
   <div class="tav-items">
 
-    <div class="tav-message tav-user-message tav-message-right">
-      <div class="pv-msg-row">
-        <div class="tav-bubble-wrapper tav-user-bubble-wrapper">
-          <div class="tav-bubble tav-user-bubble tavo-bubble tavo-user-bubble">
-            <div class="tav-bubble-content tav-user-bubble-content tavo-bubble-content tavo-user-bubble-content">
-              <div class="tav-bubble-content-body tavo-bubble-content-body pv-user-body">
-                <div class="lp-body">那就再待一会儿。<em>等到月亮上来</em>，我们把灯挂在桅杆上。<q>「夜色比白天更适合赶路」</q></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="pv-avatar pv-user-avatar tavo-user-avatar tavo-avatar">我</div>
-      </div>
-    </div>
-
     <div class="tav-message tav-character-message tav-message-left">
-      <div class="pv-msg-row">
-        <div class="pv-avatar pv-char-avatar tavo-character-avatar tavo-avatar">屿</div>
-        <div class="tav-bubble-wrapper tav-character-bubble-wrapper">
-          <div class="tav-speaker-name tavo-speaker-name">屿</div>
-          <div class="tav-bubble tav-character-bubble tavo-bubble tavo-character-bubble">
-            <div class="tav-bubble-content tav-character-bubble-content tavo-bubble-content tavo-character-bubble-content">
-              <div class="tav-bubble-content-body tavo-bubble-content-body pv-char-body">
-                <details class="tav-message-reasoning tavo-message-reasoning" open>
-                  <summary>已深度思考</summary>
-                  <div class="tav-message-reasoning-body">用户想留在这里看夜景。应当描述此刻的光线与声音，再给出行动的理由。</div>
-                </details>
-                <div class="tav-message-content tavo-message-content">
-                  <div class="lp-body">山顶的雪还没化。我把窗开了条缝，<em>风里有松脂和冷石头的味道</em>。要不要现在上去看看？日出前的那段时间，<q>整面雪坡是淡青色的</q>。夜里的山道只有我们两个人，<em>雪光比月光还要亮一些</em>。</div>
-                  <div id="pv-lindy"></div>
-                </div>
+      <div class="tav-avatar tav-character-avatar tavo-avatar tavo-character-avatar"><span class="pv-avatar-initial">屿</span></div>
+      <div class="tav-bubble-wrapper tav-character-bubble-wrapper">
+        <div class="tav-speaker-name tavo-speaker-name">屿</div>
+        <div class="tav-bubble tav-character-bubble tavo-bubble tavo-character-bubble">
+          <div class="tav-bubble-content tav-character-bubble-content tavo-bubble-content tavo-character-bubble-content">
+            <div class="tav-bubble-content-body tavo-bubble-content-body pv-char-body">
+              <details class="tav-message-reasoning tavo-message-reasoning" open>
+                <summary>已深度思考</summary>
+                <div class="tav-message-reasoning-body">用户想留在这里看夜景。应当描述此刻的光线与声音，再给出行动的理由。</div>
+              </details>
+              <div class="tav-message-content tavo-message-content">
+                <div id="pv-lindy"></div>
+                <div class="lp-body">山顶的雪还没化。我把窗开了条缝，<em>风里有松脂和冷石头的味道</em>。要不要现在上去看看？日出前的那段时间，<q>整面雪坡是淡青色的</q>。夜里的山道只有我们两个人，<em>雪光比月光还要亮一些</em>。</div>
+                <div id="pv-fold"></div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="tav-action-bar">
-        <div class="tav-action-bar-button-group tavo-action-bar-button-group">
-          <button class="tav-action-bar-button tav-action-bar-button-regenerate tavo-action-bar-button" title="重新生成"></button>
-          <button class="tav-action-bar-button tav-action-bar-button-continue tavo-action-bar-button" title="继续"></button>
-          <button class="tav-action-bar-button tav-action-bar-button-inspire tavo-action-bar-button" title="灵感"></button>
-          <button class="tav-action-bar-button tav-action-bar-button-tts tavo-action-bar-button" title="朗读"></button>
-          <button class="tav-action-bar-button tav-action-bar-button-copy tavo-action-bar-button" title="复制"></button>
+        <div class="tav-action-bar">
+          <div class="tav-action-bar-button-group tavo-action-bar-button-group">
+            <button class="tav-action-bar-button tav-action-bar-button-regenerate tavo-action-bar-button" title="重新生成"></button>
+            <button class="tav-action-bar-button tav-action-bar-button-continue tavo-action-bar-button" title="继续"></button>
+            <button class="tav-action-bar-button tav-action-bar-button-inspire tavo-action-bar-button" title="灵感"></button>
+            <button class="tav-action-bar-button tav-action-bar-button-tts tavo-action-bar-button" title="朗读"></button>
+            <button class="tav-action-bar-button tav-action-bar-button-copy tavo-action-bar-button" title="复制"></button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="tav-message tav-user-message tav-message-right">
-      <div class="pv-msg-row">
-        <div class="tav-bubble-wrapper tav-user-bubble-wrapper">
-          <div class="tav-bubble tav-user-bubble tavo-bubble tavo-user-bubble">
-            <div class="tav-bubble-content tav-user-bubble-content tavo-bubble-content tavo-user-bubble-content">
-              <div class="tav-bubble-content-body tavo-bubble-content-body pv-user-body2">
-                <div class="lp-body">好，<em>带路吧</em>。你走前面，我看着灯。</div>
-              </div>
+      <div class="tav-avatar tav-user-avatar tavo-avatar tavo-user-avatar"><span class="pv-avatar-initial">我</span></div>
+      <div class="tav-bubble-wrapper tav-user-bubble-wrapper">
+        <div class="tav-bubble tav-user-bubble tavo-bubble tavo-user-bubble">
+          <div class="tav-bubble-content tav-user-bubble-content tavo-bubble-content tavo-user-bubble-content">
+            <div class="tav-bubble-content-body tavo-bubble-content-body pv-user-body">
+              <div class="lp-body">那就再待一会儿。<em>等到月亮上来</em>，我们把灯挂在桅杆上。<q>「夜色比白天更适合赶路」</q></div>
             </div>
           </div>
         </div>
-        <div class="pv-avatar pv-user-avatar tavo-user-avatar tavo-avatar">我</div>
       </div>
     </div>
 
-    <div class="tav-message tav-character-message tav-message-left">
-      <div class="pv-msg-row">
-        <div class="pv-avatar pv-char-avatar tavo-character-avatar tavo-avatar">屿</div>
-        <div class="tav-bubble-wrapper tav-character-bubble-wrapper">
-          <div class="tav-bubble tav-character-bubble tavo-bubble tavo-character-bubble">
-            <div class="tav-bubble-content tav-character-bubble-content tavo-bubble-content tavo-character-bubble-content">
-              <div class="tav-bubble-content-body tavo-bubble-content-body pv-char-body2">
-                <div class="tav-message-content tavo-message-content">
-                  <div class="lp-body"><q>「小心脚下，左边是悬岩。」</q>他伸手把我往里带了带，<em>石缝里有炉火的暖意透出来</em>。</div>
-                </div>
+    <div class="tav-message tav-character-message">
+      <div class="tav-avatar tav-character-avatar tavo-avatar tavo-character-avatar"><span class="pv-avatar-initial">屿</span></div>
+      <div class="tav-bubble-wrapper tav-character-bubble-wrapper">
+        <div class="tav-bubble tav-character-bubble tavo-bubble tavo-character-bubble">
+          <div class="tav-bubble-content tav-character-bubble-content tavo-bubble-content tavo-character-bubble-content">
+            <div class="tav-bubble-content-body tavo-bubble-content-body pv-char-body2">
+              <div class="tav-message-content tavo-message-content">
+                <div class="lp-body"><q>「小心脚下，左边是悬岩。」</q>他伸手把我往里带了带，<em>石缝里有炉火的暖意透出来</em>。</div>
               </div>
             </div>
           </div>
@@ -1599,12 +1556,16 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
 
   </div>
 
-  <section class="tav-chat-composer tav-composer tavo-composer">
-    <div class="tav-chat-composer-shell tav-composer-shell tavo-composer-shell">
+  <section class="tav-chat-composer tav-composer tavo-composer" data-tav-role="composer-root">
+    <div class="tav-chat-composer-attachments" data-tav-role="attachments" hidden></div>
+    <div class="tav-chat-composer-group-repliers" data-tav-role="group-repliers" hidden></div>
+    <div class="tav-chat-composer-shell tav-composer-shell tavo-composer-shell" data-tav-role="shell">
       <button type="button" class="tav-composer-leading-button" data-tav-role="plus"><span class="tav-composer-add-icon tavo-composer-add-icon" data-tav-role="plus-icon">＋</span></button>
-      <textarea class="tav-chat-composer-input tav-composer-input tavo-composer-input" rows="1" id="composer-input" placeholder="说点什么…"></textarea>
+      <textarea class="tav-chat-composer-input tav-composer-input tavo-composer-input" data-tav-role="input" rows="1" id="composer-input" placeholder="说点什么…"></textarea>
       <button type="button" class="tav-composer-trailing-button" data-tav-role="trailing"><span class="tav-composer-send-icon tavo-composer-send-icon" data-tav-role="trailing-icon">➤</span></button>
     </div>
+    <div class="tav-chat-composer-shortcuts" data-tav-role="shortcut-bar" hidden></div>
+    <div class="tav-chat-asr-overlay" data-tav-role="asr-overlay" hidden></div>
   </section>
 </div>
 <script>
@@ -1652,6 +1613,7 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
     + '--tav-chat-composer-shell-background:' + (cssVal(co.color) || 'rgba(202,204,209,.4)') + ';'
     + '--tav-chat-composer-backdrop-blur:' + (co.blur != null ? co.blur : 16) + 'px;'
     + '--tav-chat-composer-radius:' + (co.radius != null ? co.radius : 7) + 'px;'
+    + '--tav-chat-composer-padding-inline:14px;--tav-chat-composer-padding-block:8px;--tav-chat-composer-padding-bottom:8px;--tav-chat-bottom-occlusion:0px;'
     + '--tav-chat-composer-text-color:' + (cssVal(co.fontColor) || '#fff') + ';'
     + '--tav-chat-composer-placeholder-color:' + (cssVal(co.placeholderColor) || 'rgba(255,255,255,.5)') + ';'
     + '--tav-chat-composer-action-color:' + (cssVal(co.sendColor) || '#fff') + ';}');
@@ -1694,15 +1656,6 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
     put(s + '}');
   }
 
-  // 状态栏
-  if (T.status_bar){
-    var s2 = '#pv-status-bar{';
-    var c2 = cssVal(sb.backgroundColor); if (c2) s2 += 'background:' + c2 + ';';
-    c2 = cssVal(sb.color); if (c2) s2 += 'color:' + c2 + ';';
-    if (sb.fontSize != null) s2 += 'font-size:' + sb.fontSize + 'px;';
-    if (sb.fontWeight != null) s2 += 'font-weight:' + sb.fontWeight + ';';
-    put(s2 + '}');
-  }
 
   // 名字显示 / 头像圆角
   if (cav.name === false) put('.tavo-speaker-name{display:none}');
@@ -1713,6 +1666,57 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
 
   /* ---- custom_css（对应 #tav-custom-style，位于动态样式之后）---- */
   $('tav-custom-style').textContent = P.customCss || '';
+
+  /* ---- 字体兜底：把主题声明的字体族名注册到包内字体文件。
+     主题 fontFamily 里的族名若没有对应 @font-face（也非系统字体）就会整串失效，
+     这里把每个包内字体注册为声明的每一个族名，保证首个族名就能命中。 ---- */
+  try {
+    var fams = [];
+    function thmPushFam(f){
+      if (!f) return;
+      String(f).split(',').forEach(function(x){
+        var n = x.trim().replace(/^['"]+|['"]+$/g, '');
+        if (n && fams.indexOf(n) < 0) fams.push(n);
+      });
+    }
+    function thmWalkFonts(o){
+      if (!o) return;
+      ['textStyle', 'toneTextStyle', 'quoteTextStyle'].forEach(function(k){
+        if (o[k]) thmPushFam(o[k].fontFamily);
+      });
+    }
+    thmWalkFonts(T.character_bubble_font);
+    thmWalkFonts(T.user_bubble_font);
+    if (T.thinking && T.thinking.fontFamily) thmPushFam(T.thinking.fontFamily);
+    if (T.status_bar && T.status_bar.fontFamily) thmPushFam(T.status_bar.fontFamily);
+    var thmCss = P.customCss || '';
+    var thmRe = /font-family\s*:\s*([^;}]+)/gi, thmM;
+    while ((thmM = thmRe.exec(thmCss))) thmPushFam(thmM[1]);
+    var declared = {};
+    var thmRf = /@font-face\s*\{[^}]*font-family\s*:\s*([^;}]+)/gi, thmRm;
+    while ((thmRm = thmRf.exec(thmCss))){
+      String(thmRm[1]).split(',').forEach(function(x){
+        var n = x.trim().replace(/^['"]+|['"]+$/g, '');
+        if (n) declared[n.toLowerCase()] = 1;
+      });
+    }
+    var thmFonts = P.fonts || [];
+    thmFonts.forEach(function(f, i){
+      try {
+        var face = new FontFace('THMAsset' + i, 'url(' + f.url + ')');
+        document.fonts.add(face); face.load();
+      } catch (e) {}
+    });
+    fams.forEach(function(fam){
+      if (declared[fam.toLowerCase()]) return;
+      thmFonts.forEach(function(f, i){
+        try {
+          var face = new FontFace(fam, 'url(' + f.url + ')');
+          document.fonts.add(face); face.load();
+        } catch (e) {}
+      });
+    });
+  } catch (e) {}
 
   /* ---- 预览底色：黑/灰/白/棋盘/网格，用来检查半透明效果 ----
      注入在 custom_css 之后，同特异性下靠后 + !important 覆盖主题背景 */
@@ -1746,16 +1750,25 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
     ct.insertBefore(layer, ct.firstChild);
   }
 
-  /* ---- lindy 卡片样例 ---- */
+  /* ---- lindy 样例：与 Lindy 测试正则组的真实 DOM 一致 ----
+     顺序 = 状态栏（lsb-panel：条目+数值条，正文上方）→ 正文 → 折叠栏（角色状态栏/手机/栏目卡，正文下方） */
   $('pv-lindy').innerHTML =
     '<div class="lsb-panel">'
-    + '<div class="lsb-item"><span class="lsb-item-icon">◈</span><span class="lsb-item-label">山径</span><span class="lsb-item-value">北坡</span></div>'
-    + '<div class="lsb-row"><span class="lsb-lbl">风</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:72%"></span></span></div>'
-    + '<div class="lsb-row"><span class="lsb-lbl">月相</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:12%"></span></span></div>'
-    + '<div class="lsb-row"><span class="lsb-lbl">能见度</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:88%"></span></span></div>'
-    + '</div>'
-    + '<details class="lp-fold" open><summary class="lp-fold-head">▸ 观察手记</summary>'
-    + '<div class="lp-fold-body">折叠栏正文：这一段用来检验折叠区文字与底色的对比度，长句会在容器内自动换行。</div></details>';
+    + '<div class="lsb-item"><span class="lsb-item-icon">🕐</span><span class="lsb-item-label">时间</span><span class="lsb-item-value">2005年7月14日 19:30</span></div>'
+    + '<div class="lsb-item"><span class="lsb-item-icon">🌦</span><span class="lsb-item-label">天气</span><span class="lsb-item-value">⛈️雷阵雨</span></div>'
+    + '<div class="lsb-item"><span class="lsb-item-icon">📍</span><span class="lsb-item-label">地点</span><span class="lsb-item-value">天台</span></div>'
+    + '<div class="lsb-item"><span class="lsb-item-icon">👥</span><span class="lsb-item-label">人物</span><span class="lsb-item-value">林夏、我</span></div>'
+    + '<div class="lsb-item"><span class="lsb-item-icon">🎬</span><span class="lsb-item-label">事件</span><span class="lsb-item-value">她别过脸去</span></div>'
+    + '<div class="lsb-row"><span class="lsb-lbl">好感度</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:62%"></span></span><span class="lsb-val">62%</span></div>'
+    + '<div class="lsb-row"><span class="lsb-lbl">黑化进度</span><span class="lsb-track"><span class="lsb-fill" style="--lsb-pct:0%"></span></span><span class="lsb-val">0%</span></div>'
+    + '</div>';
+  $('pv-fold').innerHTML =
+    '<details class="lp-fold" data-kind="fields"><summary class="lp-fold-head">📋 角色状态栏</summary>'
+    + '<div class="lp-fold-body">✦ 新字段：示例值（检验折叠区文字与底色的对比度，长句自动换行）</div></details>'
+    + '<details class="lp-fold" data-kind="sections"><summary class="lp-fold-head">📱 手机</summary>'
+    + '<div class="lp-fold-body">✦ 新小节<br>第一行<br>第二行</div></details>'
+    + '<details class="lp-fold" data-kind="board"><summary class="lp-fold-head">📢 栏目卡</summary>'
+    + '<div class="lp-fold-body"><b>【板块】示例标题</b><br>正文一行</div></details>';
 
   /* ---- 开关 ---- */
   function applyUi(ui){
@@ -1763,7 +1776,7 @@ body[data-speaker="off"] .tavo-speaker-name{display:none}
     var b = document.body;
     b.dataset.thinking = ui.thinking === false ? 'off' : 'on';
     b.dataset.lindy = ui.lindy === false ? 'off' : 'on';
-    b.dataset.statusbar = ui.statusbar === false ? 'off' : 'on';
+
     b.dataset.avatar = ui.avatar === false ? 'off' : 'on';
     b.dataset.speaker = ui.speaker === false ? 'off' : 'on';
   }

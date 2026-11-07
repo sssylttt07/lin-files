@@ -1203,6 +1203,16 @@ function pageUnconfigured(res, what) {
   res.end(body);
 }
 
+/* Tavo 真机基础样式：modules/lin-thm/tavo-dist/ → /thmdist/（预览器加载真机 bundle.min.css） */
+async function serveThmDist(req, res, u) {
+  const distDir = path.join(THM_MOD, 'tavo-dist');
+  return servePrefixed(req, res, u, '/thmdist/', distDir, 'index.html');
+}
+/* 内置字体包：modules/lin-thm/fonts/ → /thmfonts/（预览器 @font-face 兜底用） */
+async function serveThmFonts(req, res, u) {
+  const fontDir = path.join(THM_MOD, 'fonts');
+  return servePrefixed(req, res, u, '/thmfonts/', fontDir, 'index.txt');
+}
 /* Lin Thm 预览器托管：modules/lin-thm 包内优先，其次 cfg.thmDir（作者本机新版覆盖） */
 async function serveThm(req, res, u) {
   if (fs.existsSync(path.join(THM_MOD, 'Lin Thm.html')))
@@ -1263,7 +1273,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (u.pathname.startsWith('/api/')) return await api(req, res, u);
     if (u.pathname.startsWith('/v/')) return await serveVaultFile(req, res, u);
-    if (u.pathname.startsWith('/thm/')) return await serveThm(req, res, u);
+    if (u.pathname.startsWith('/thmdist/')) return await serveThmDist(req, res, u);
+    if (u.pathname.startsWith('/thmfonts/')) return await serveThmFonts(req, res, u);    if (u.pathname.startsWith('/thm/')) return await serveThm(req, res, u);
     if (u.pathname.startsWith('/lwp/')) return await serveLwp(req, res, u);
     return await serveStatic(req, res, u);
   } catch (e) {
