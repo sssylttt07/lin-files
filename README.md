@@ -37,7 +37,7 @@ Lin Files 是一个本地「Obsidian 式」**AI 角色扮演素材库管理器**
 
 ## 安装（三步）
 
-1. 从 **Releases** 下载 `LinFiles-v1.1.1-portable.zip`（已内置 Node 运行时）
+1. 从 **Releases** 下载 `LinFiles-v1.1.2.zip`（已内置 Node 运行时）
 2. 解压到任意目录（路径可含中文与空格）
 3. 双击 **`启动 Lin Files.bat`** —— 浏览器会自动打开 `http://127.0.0.1:8765/`
 

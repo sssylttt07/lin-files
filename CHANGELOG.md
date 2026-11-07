@@ -1,5 +1,10 @@
 # 更新日志
 
+## v1.1.2 — 2026-11-07
+
+- Updated embedded Lin Thm (bug fixes + new features).
+- Added `/thmdist/` and `/thmfonts/` asset routes: the theme previewer now serves the bundled Tavo device-style CSS and built-in fonts.
+
 ## v1.1.1（2026-11-05）
 
 安全加固与打包修复版，功能无任何变化。
